@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=ugwmhhKiIoatjqLnxIdVbqjlaSUnzGPR
+      - POSTGRES_DB=phishon
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - postgres
+networks:
+  postgres:
+    driver: bridge
+volumes:
+  postgres:
