@@ -1,27 +1,16 @@
 package controllers
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/PersonalComputerOne/Phish-On/pkg/db"
 	"github.com/agnivade/levenshtein"
 	"github.com/gin-gonic/gin"
 )
-
-type domain struct {
-	ID  string `json:"id"`
-	Url string `json:"url"`
-}
-
-var domains = []domain{
-	{ID: "1", Url: "github.com"},
-	{ID: "2", Url: "google.com"},
-	{ID: "3", Url: "facebook.com"},
-	{ID: "4", Url: "linkedin.com"},
-	{ID: "5", Url: "x.com"},
-	{ID: "6", Url: "instagram.com"},
-}
 
 type urlResult struct {
 	InputUrl   string `json:"input_url"`
@@ -45,6 +34,13 @@ func getHost(inputURL string) (string, error) {
 }
 
 func Levenshtein(c *gin.Context) {
+	conn, err := db.Init()
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	defer conn.Close()
+
 	var jsonData struct {
 		Urls []string `json:"urls"`
 	}
@@ -58,6 +54,18 @@ func Levenshtein(c *gin.Context) {
 
 	const maxDistance = 2
 
+	var domains []string
+
+	rows, _ := conn.Query(context.Background(), `SELECT url FROM domain`)
+
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			log.Fatalf("Failed to scan URL: %v", err)
+		}
+		domains = append(domains, url)
+	}
+
 	for _, inputUrl := range jsonData.Urls {
 		host, err := getHost(inputUrl)
 		if err != nil {
@@ -68,11 +76,11 @@ func Levenshtein(c *gin.Context) {
 		closestUrl := ""
 
 		for _, d := range domains {
-			distance := levenshtein.ComputeDistance(host, d.Url)
+			distance := levenshtein.ComputeDistance(host, d)
 
 			if minDistance == -1 || distance < minDistance {
 				minDistance = distance
-				closestUrl = d.Url
+				closestUrl = d
 			}
 		}
 
