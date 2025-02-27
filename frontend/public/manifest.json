@@ -1,16 +1,14 @@
 {
-    "name": "phish-off",
-    "description": "Phish-off",
+    "name": "Phish-On",
+    "description": "Phish-On",
     "version": "1.0",
     "manifest_version": 3,
     "action": {
-        "default_popup": "index.html"
+        "default_popup": "index.html",
+        "default_icon": {
+            "128": "icon.png"
+        }
     },
-    "permissions": [
-        "scripting"
-    ],
-    "host_permissions": [
-        "http://*/*",
-        "https://*/*"
-    ]
+    "permissions": ["tabs", "activeTab", "scripting"],
+    "host_permissions": ["<all_urls>"]
 }

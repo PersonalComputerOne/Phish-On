@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/carousel.jsx","./src/components/footer.jsx","./src/components/header.jsx","./src/pages/extensionpopup.jsx","./src/pages/home.jsx","./src/pages/maliciouswarning.jsx","./src/pages/phishingwarning.jsx"],"errors":true,"version":"5.7.3"}
