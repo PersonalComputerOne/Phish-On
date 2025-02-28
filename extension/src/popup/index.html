@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Phish On! Extension Popup</title>
+    <style>
+      .popup-container {
+        width: 300px;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        border-radius: 10px;
+        border: 2px solid #1092e9;
+        background-color: #f9f9f9;
+      }
+
+      .popup-container h2 {
+        margin: 0;
+        font-size: 1.5rem;
+      }
+
+      .subtitle {
+        color: #888;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+      }
+
+      .details p {
+        font-size: 0.85rem;
+        text-align: left;
+        margin: 5px 0;
+      }
+
+      .url-checker label {
+        font-weight: bold;
+        display: block;
+        margin-top: 15px;
+        text-align: left;
+      }
+
+      .url-checker textarea {
+        width: 100%;
+        height: 60px;
+        padding: 5px;
+        margin-top: 5px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        resize: none;
+      }
+
+      .check-btn {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+
+      .check-btn:hover {
+        background-color: #1092e9;
+      }
+
+      .url-list {
+        max-height: 150px;
+        overflow-y: auto;
+        text-align: left;
+        margin-top: 15px;
+        font-size: 0.85rem;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #fff;
+      }
+
+      .url-list div {
+        margin-bottom: 5px;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="popup-container">
+      <h2>Phish On!</h2>
+      <p class="subtitle">Block Phishing Website</p>
+
+      <div class="details">
+        <p><strong>Detected URL:</strong> _______________</p>
+        <p><strong>Closest Possible URL:</strong> _______________</p>
+        <p><strong>Server Type:</strong> _______________</p>
+        <p><strong>IP Address:</strong> _______________</p>
+        <p><strong>Levenshtein Distance:</strong> _______________</p>
+      </div>
+
+      <div class="url-checker">
+        <label for="urlInput">URL Checker:</label>
+        <textarea
+          id="urlInput"
+          placeholder="Paste here"
+        ></textarea>
+        <button
+          class="check-btn"
+          onclick="handleCheck()"
+        >
+          Check
+        </button>
+      </div>
+
+      <div
+        class="url-list"
+        id="urlList"
+      >
+        <p><strong>Link Result:</strong></p>
+        <div id="urlsContainer">Loading URLs...</div>
+      </div>
+    </div>
+  </body>
+</html>
