@@ -9,7 +9,7 @@ const MaliciousWarning = () => {
     // Function to return to the previous page
     const handleLeave = () => {
         if (window.history.length > 1) {
-            window.history.back(); //Pprevious page
+            window.history.back(); //Previous page
         } else {
             navigate("/"); // If no previous history, go to home
         }
