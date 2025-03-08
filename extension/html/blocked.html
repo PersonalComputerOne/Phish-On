@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phish On!</title>
+    <link rel="stylesheet" href="/css/blocked.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Website Blocked</h1>
+        <p>
+          This website is malicious and may be designed to steal your personal
+          information. Proceed with caution or avoid entering any sensitive
+          data.
+        </p>
+      </div>
+
+      <div class="content">
+        <div class="url-section">
+          <h2>You attempted to visit:</h2>
+          <div class="url-box" id="attempted-url"></div>
+        </div>
+
+        <div class="url-section">
+          <h2>Did you mean to visit:</h2>
+          <div class="suggestion">
+            <a id="suggested-url" href="#"> </a>
+          </div>
+          <p style="margin-top: 15px; font-size: 14px; color: #666">
+            Click the link above to navigate to the suggested website
+          </p>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="leave-btn" id="leave-btn">Leave website</button>
+      </div>
+
+      <div class="footer">© 2025 Phish On! All rights reserved.</div>
+    </div>
+
+    <script src="/js/blocked.js"></script>
+  </body>
+</html>

@@ -10,7 +10,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/PersonalComputerOne/Phish-On/pkg/db"
+	"github.com/PersonalComputerOne/Phish-On/db"
 	"github.com/jackc/pgx/v5"
 )
 
