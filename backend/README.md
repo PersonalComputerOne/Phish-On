@@ -19,7 +19,7 @@ goose up
 To seed the database with initial data, use the following command:
 
 ```bash
-go run ./cmd/seed
+go run ./seed
 ```
 
 #### 3. Start the API
@@ -27,7 +27,7 @@ go run ./cmd/seed
 To run the API server, execute:
 
 ```bash
-go run ./cmd/api
+go run main.go
 ```
 
 #### 4. Test the API
