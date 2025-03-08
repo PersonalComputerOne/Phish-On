@@ -1,0 +1,135 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #4a4a4a;
+}
+
+.container {
+  max-width: 650px;
+  width: 100%;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+.header {
+  background: #000;
+  padding: 25px 30px;
+  color: white;
+  position: relative;
+  font-size: 0.9rem;
+}
+
+.icon {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 38px;
+  opacity: 0.9;
+}
+
+h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.header p {
+  font-weight: 300;
+  opacity: 0.9;
+}
+
+.content {
+  padding: 30px;
+}
+
+.url-section {
+  margin-bottom: 25px;
+}
+
+.url-section h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.url-box {
+  background-color: #f8f9fa;
+  border-left: 4px solid #ff6b6b;
+  padding: 15px;
+  border-radius: 6px;
+  word-break: break-all;
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  color: #555;
+}
+
+.suggestion {
+  background-color: #f0f7ff;
+  border-left: 4px solid #4285f4;
+  padding: 15px;
+  border-radius: 6px;
+  word-break: break-all;
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  color: #555;
+}
+
+.suggestion a {
+  color: #4285f4;
+  text-decoration: none;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.suggestion a:hover {
+  text-decoration: underline;
+}
+
+.suggestion a:hover::after {
+  margin-left: 10px;
+}
+
+.action-buttons {
+  text-align: center;
+}
+
+.leave-btn {
+  background-color: red;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.leave-btn:hover {
+  background-color: #555;
+  transform: scale(1.02);
+}
+
+.footer {
+  padding: 20px 30px;
+  background-color: #f8f9fa;
+  font-size: 14px;
+  color: #777;
+  text-align: center;
+  border-top: 1px solid #eee;
+}
