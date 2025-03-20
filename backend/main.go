@@ -8,8 +8,8 @@ import (
         "strings"
         "sync"
 
-        "github.com/PersonalComputerOne/Phish-On/backend/algorithms"
-        "github.com/PersonalComputerOne/Phish-On/backend/db"
+        "github.com/PersonalComputerOne/Phish-On/algorithms"
+        "github.com/PersonalComputerOne/Phish-On/db"
         "github.com/gin-gonic/gin"
         "runtime"
 )
