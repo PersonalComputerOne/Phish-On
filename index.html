@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Animation</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        .hello {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .mode {
+            position: absolute;
+            font-size: 40px;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+    <div class="hello">
+        <div class="mode" id="hello-text">👋 Hello</div>
+    </div>
+    <script>
+        const greetings = [
+            "👋 Hello", "👋 Hola", "👋 Bonjour", "👋 Hallo", "👋 Ciao", 
+            "👋 こんにちは", "👋 안녕하세요", "👋 你好", "👋 Привет", "👋 مرحبا"
+        ];
+        
+        let index = 0;
+        const helloText = document.getElementById("hello-text");
+
+        setInterval(() => {
+            helloText.style.opacity = 1;
+            setTimeout(() => {
+                index = (index + 1) % greetings.length;
+                helloText.textContent = greetings[index];
+                helloText.style.opacity = 1;
+            }, 100);
+        }, 100);
+    </script>
+</body>
+</html>
