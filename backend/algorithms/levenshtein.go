@@ -2,7 +2,7 @@
 //
 // Implementation taken from
 // https://gist.github.com/andrei-m/982927#gistcomment-1931258
-package levenshtein
+package algorithms
 
 import "unicode/utf8"
 
