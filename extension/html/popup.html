@@ -7,21 +7,25 @@
     <link rel="stylesheet" href="/css/popup.css" />
   </head>
   <body>
+    <div class="popup-container">
     <h2>Phish On!</h2>
-
+    
     <div class="form-group">
+      <label for="url">Detected URL:</label>
+      <label for="url">Possible URL:</label>
+      <label for="url">Levenshtein Distance:</label>
       <label for="url">URL:</label>
       <input
         type="text"
         id="url"
         placeholder="Enter URL or leave blank for current tab"
-      />
+      /> 
     </div>
-
+  
     <button id="check">Check</button>
 
     <div class="status" id="status"></div>
-
+</div>
     <script src="/js/popup.js"></script>
   </body>
 </html>

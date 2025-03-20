@@ -1,6 +1,5 @@
 body {
   width: 300px;
-  padding: 10px;
   font-family: Arial, sans-serif;
 }
 
@@ -37,4 +36,15 @@ button {
   background-color: #f1f1f1;
   border-radius: 4px;
   font-size: 14px;
+}
+
+.popup-container {
+  background: white;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+h2 {
+  text-align: center;
 }

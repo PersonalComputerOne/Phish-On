@@ -5,9 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Phish On!</title>
     <link rel="stylesheet" href="/css/landing.css" />
+    <style>
+      #hello-text {
+          color: white;
+      }
+      .hello {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          font-size: 40px;
+      }
+
+      .loading-screen {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100vh;
+          background-color: black;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 9999;
+          transition: opacity 1s;
+      }
+
+      .content {
+          display: none;
+          text-align: center;
+          opacity: 0;
+          transform: translateY(100px); /* Initially moved down */
+          transition: opacity 1s ease, transform 1s ease; /* Smooth transition */
+      }
+  </style>
   </head>
   <body>
-    <div class="home-container">
+
+    <div class="loading-screen" id="loading-screen">
+      <div class="hello" id="hello-text">👋 Hello</div>
+  </div>
+
+  <div class="content" id="content">
+
+    <div class="home-container"> 
       <header class="header">
         <div class="logo-container">
           <img src="/assets/logo.png" alt="Phish On! Logo" class="logo" />
@@ -15,7 +56,7 @@
         </div>
         <nav class="nav-links">
           <button class="btn-about" id="about-btn">About</button>
-          <div class="btn-get-started">Get Started</div>
+          <button class="btn-get-started">Get Started</button>
         </nav>
       </header>
       <main>
@@ -24,8 +65,8 @@
 
         <div class="carousel" id="carousel">
           <div class="modal" id="modal">
-            <img alt="Enlarged" class="modal-image" id="modal-image" />
-          </div>
+            <img class="modal-image" id="modal-image" />
+          </div> 
           <div class="carousel-content">
             <button class="prev" id="prev-btn">&#10094;</button>
             <div class="image-container">
@@ -34,11 +75,18 @@
                 class="carousel-image"
                 id="current-image"
               />
+              <img
+                alt="Carousel Image"
+                class="carousel-image"
+                id="curr-image"
+              />
             </div>
             <button class="next" id="next-btn">&#10095;</button>
           </div>
           <div class="thumbnails" id="thumbnails"></div>
         </div>
+
+        <button class="try-now">Try Now</button>
 
         <p class="mini-text" id="about-target">
           <em>
@@ -81,7 +129,8 @@
         <p>© 2025 Phish On! All rights reserved.</p>
       </footer>
     </div>
-
+  </div>
     <script src="/js/landing.js"></script>
+    <script src="/js/hello.js"></script>
   </body>
 </html>
