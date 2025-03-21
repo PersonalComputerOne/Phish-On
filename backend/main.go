@@ -13,7 +13,19 @@ import (
 	"github.com/PersonalComputerOne/Phish-On/algorithms"
 	"github.com/PersonalComputerOne/Phish-On/db"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type LevenshteinResult struct {
+	InputUrl   string `json:"input_url"`
+	Distance   int    `json:"distance"`
+	IsReal     bool   `json:"is_real"`
+	ClosestUrl string `json:"closest_url"`
+}
+
+type RequestBody struct {
+	Urls []string `json:"urls"`
+}
 
 func main() {
 	pool, err := db.Init()
@@ -26,8 +38,12 @@ func main() {
 
 	api := router.Group("/api/v1")
 	{
-		api.POST("/levenshtein/sequential", levenshteinSequentialHandler)
-		api.POST("/levenshtein/parallel", levenshteinParallelHandler)
+		api.POST("/levenshtein/sequential", func(c *gin.Context) {
+			levenshteinSequentialHandler(c, pool)
+		})
+		api.POST("/levenshtein/parallel", func(c *gin.Context) {
+			levenshteinParallelHandler(c, pool)
+		})
 	}
 
 	router.GET("/health", func(c *gin.Context) {
@@ -37,50 +53,22 @@ func main() {
 	router.Run(":8080")
 }
 
-func levenshteinSequentialHandler(c *gin.Context) {
-	var jsonData struct {
-		Urls []string `json:"urls"`
-	}
+func levenshteinSequentialHandler(c *gin.Context, pool *pgxpool.Pool) {
+	var jsonData RequestBody
 
 	if err := c.ShouldBindJSON(&jsonData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	domains, err := fetchDomains(pool)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve domains"})
+		return
+	}
+
 	const maxDistance = 2
-	var domains []string
-
-	pool, err := db.Init()
-	if err != nil {
-		log.Printf("DB Initialization error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Initialization error"})
-		return
-	}
-	defer pool.Close()
-
-	rows, err := pool.Query(context.Background(), `SELECT url FROM domain`)
-	if err != nil {
-		log.Printf("Query error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Query error"})
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var d string
-		if err := rows.Scan(&d); err != nil {
-			log.Printf("Scan error: %v", err)
-			continue
-		}
-		domains = append(domains, d)
-	}
-
-	var results []struct {
-		InputUrl   string `json:"input_url"`
-		Distance   int    `json:"distance"`
-		IsReal     bool   `json:"is_real"`
-		ClosestUrl string `json:"closest_url"`
-	}
+	var results []LevenshteinResult
 
 	for _, inputUrl := range jsonData.Urls {
 		host, err := getHost(inputUrl)
@@ -104,12 +92,7 @@ func levenshteinSequentialHandler(c *gin.Context) {
 		}
 		isReal := minDistance == 0
 
-		results = append(results, struct {
-			InputUrl   string `json:"input_url"`
-			Distance   int    `json:"distance"`
-			IsReal     bool   `json:"is_real"`
-			ClosestUrl string `json:"closest_url"`
-		}{
+		results = append(results, LevenshteinResult{
 			InputUrl:   inputUrl,
 			Distance:   minDistance,
 			IsReal:     isReal,
@@ -120,50 +103,22 @@ func levenshteinSequentialHandler(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, gin.H{"results": results})
 }
 
-func levenshteinParallelHandler(c *gin.Context) {
-	var jsonData struct {
-		Urls []string `json:"urls"`
-	}
+func levenshteinParallelHandler(c *gin.Context, pool *pgxpool.Pool) {
+	var jsonData RequestBody
 
 	if err := c.ShouldBindJSON(&jsonData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	domains, err := fetchDomains(pool)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve domains"})
+		return
+	}
+
 	const maxDistance = 2
-	var domains []string
-
-	pool, err := db.Init()
-	if err != nil {
-		log.Printf("DB Initialization error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Initialization error"})
-		return
-	}
-	defer pool.Close()
-
-	rows, err := pool.Query(context.Background(), `SELECT url FROM domain`)
-	if err != nil {
-		log.Printf("Query error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Query error"})
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var d string
-		if err := rows.Scan(&d); err != nil {
-			log.Printf("Scan error: %v", err)
-			continue
-		}
-		domains = append(domains, d)
-	}
-
-	var results []struct {
-		InputUrl   string `json:"input_url"`
-		Distance   int    `json:"distance"`
-		IsReal     bool   `json:"is_real"`
-		ClosestUrl string `json:"closest_url"`
-	}
+	var results []LevenshteinResult
 
 	for _, inputUrl := range jsonData.Urls {
 		host, err := getHost(inputUrl)
@@ -225,12 +180,7 @@ func levenshteinParallelHandler(c *gin.Context) {
 		}
 		isReal := minDistance == 0
 
-		results = append(results, struct {
-			InputUrl   string `json:"input_url"`
-			Distance   int    `json:"distance"`
-			IsReal     bool   `json:"is_real"`
-			ClosestUrl string `json:"closest_url"`
-		}{
+		results = append(results, LevenshteinResult{
 			InputUrl:   inputUrl,
 			Distance:   minDistance,
 			IsReal:     isReal,
@@ -239,6 +189,27 @@ func levenshteinParallelHandler(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, gin.H{"results": results})
+}
+
+func fetchDomains(pool *pgxpool.Pool) ([]string, error) {
+	var domains []string
+
+	rows, err := pool.Query(context.Background(), `SELECT url FROM domain`)
+	if err != nil {
+		log.Printf("Query error: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var d string
+		if err := rows.Scan(&d); err != nil {
+			log.Printf("Scan error: %v", err)
+			continue
+		}
+		domains = append(domains, d)
+	}
+	return domains, nil
 }
 
 func getHost(inputURL string) (string, error) {
