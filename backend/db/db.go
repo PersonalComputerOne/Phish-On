@@ -28,7 +28,7 @@ func Init() (*pgxpool.Pool, error) {
 	poolConfig.HealthCheckPeriod = 1 * time.Minute
 	poolConfig.MaxConnLifetime = 2 * time.Hour
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	dbpool, err := pgxpool.NewWithConfig(ctx, poolConfig)
