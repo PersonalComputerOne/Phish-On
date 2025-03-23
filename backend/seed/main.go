@@ -11,8 +11,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/PersonalComputerOne/Phish-On/db"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/PersonalComputerOne/Phish-On/db"
 )
 
 type ProcessorFunc func([]byte) ([]string, error)
@@ -29,39 +30,39 @@ func main() {
 		URL       string
 		Processor ProcessorFunc
 	}{
-		// {
-		// 	Name: "Kaggle - Alexa Top 1 Million Sites",
-		// 	URL:  "https://www.kaggle.com/api/v1/datasets/download/cheedcheed/top1m",
-		// 	Processor: func(data []byte) ([]string, error) {
-		// 		return processZipFile(data, "", 1)
-		// 	},
-		// },
-		// {
-		// 	Name: "Umbrella Top 1 Million Sites",
-		// 	URL:  "https://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip",
-		// 	Processor: func(data []byte) ([]string, error) {
-		// 		return processZipFile(data, "top-1m.csv", 1)
-		// 	},
-		// },
-		// {
-		// 	Name: "Majestic Million",
-		// 	URL:  "https://downloads.majestic.com/majestic_million.csv",
-		// 	Processor: func(data []byte) ([]string, error) {
-		// 		return parseCSV(bytes.NewReader(data), 2)
-		// 	},
-		// },
-		// {
-		// 	Name: "Domcop Top 10 Million Domains",
-		// 	URL:  "https://www.domcop.com/files/top/top10milliondomains.csv.zip",
-		// 	Processor: func(data []byte) ([]string, error) {
-		// 		return processZipFile(data, ".csv", 1)
-		// 	},
-		// },
 		{
-			Name: "Tranco Top 1 Million",
-			URL:  "https://tranco-list.eu/top-1m.csv.zip",
+			Name: "Kaggle - Alexa Top 1 Million Sites",
+			URL:  "https://www.kaggle.com/api/v1/datasets/download/cheedcheed/top1m",
+			Processor: func(data []byte) ([]string, error) {
+				return processZipFile(data, "", 1)
+			},
+		},
+		{
+			Name: "Umbrella Top 1 Million Sites",
+			URL:  "https://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip",
 			Processor: func(data []byte) ([]string, error) {
 				return processZipFile(data, "top-1m.csv", 1)
+			},
+		},
+		{
+			Name: "Majestic Million",
+			URL:  "https://downloads.majestic.com/majestic_million.csv",
+			Processor: func(data []byte) ([]string, error) {
+				return parseCSV(bytes.NewReader(data), 2)
+			},
+		},
+		{
+			Name: "Domcop Top 10 Million Domains",
+			URL:  "https://www.domcop.com/files/top/top10milliondomains.csv.zip",
+			Processor: func(data []byte) ([]string, error) {
+				return processZipFile(data, ".csv", 1)
+			},
+		},
+		{
+			Name: "Tranco Top 1 Million",
+			URL:  "https://tranco-list.eu/download/24879/full",
+			Processor: func(data []byte) ([]string, error) {
+				return parseCSV(bytes.NewReader(data), 1)
 			},
 		},
 		{
@@ -144,8 +145,11 @@ func downloadDataset(url string) ([]byte, error) {
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0")
-	
+	req.Header.Set(
+		"User-Agent",
+		"Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
+	)
+
 	if strings.Contains(url, "builtwith.com") {
 		req.Header.Set("Accept", "application/zip")
 	}
