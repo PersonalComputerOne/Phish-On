@@ -49,7 +49,7 @@ func main() {
 	}
 
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "runtime": runtime.NumCPU()})
 	})
 
 	router.Run(":8080")
@@ -113,19 +113,23 @@ func computeResultsParallel(urls, hosts []string, phishingSet map[string]bool, d
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, runtime.NumCPU())
-	for i, inputUrl := range urls {
+
+	for i := range urls {
 		wg.Add(1)
-		sem <- struct{}{} // Acquire a semaphore slot
-		go func(idx int, urlStr, host string) {
+		sem <- struct{}{}
+
+		go func(idx int, url, host string) {
 			defer func() {
-				<-sem // Release semaphore slot
+				<-sem
 				wg.Done()
 			}()
-			results[idx] = computeResultForUrl(urlStr, host, phishingSet, domains)
-		}(i, inputUrl, hosts[i])
-	}
-	wg.Wait()
 
+			results[idx] = computeResultForUrl(url, hosts[i], phishingSet, domains)
+
+		}(i, urls[i], hosts[i])
+	}
+
+	wg.Wait()
 	return results
 }
 
@@ -138,6 +142,17 @@ func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, dom
 		}
 	}
 
+	numDomains := len(domains)
+	if numDomains == 0 {
+		return LevenshteinResult{
+			InputUrl:   inputUrl,
+			Distance:   -1,
+			IsReal:     false,
+			ClosestUrl: "",
+			IsPhishing: false,
+		}
+	}
+
 	minDistance := -1
 	closestUrl := ""
 	for _, d := range domains {
@@ -146,12 +161,11 @@ func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, dom
 			minDistance = distance
 			closestUrl = d
 			if distance == 0 {
-				break // Exact match found
+				break
 			}
 		}
 	}
 
-	isReal := minDistance == 0
 	if minDistance > maxDistance {
 		closestUrl = ""
 	}
@@ -159,7 +173,7 @@ func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, dom
 	return LevenshteinResult{
 		InputUrl:   inputUrl,
 		Distance:   minDistance,
-		IsReal:     isReal,
+		IsReal:     minDistance == 0,
 		ClosestUrl: closestUrl,
 		IsPhishing: false,
 	}
