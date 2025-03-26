@@ -48,3 +48,66 @@ button {
 h2 {
   text-align: center;
 }
+
+.scan-results {
+  margin-top: 1rem;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+}
+
+.result-summary {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.stat-box {
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 4px;
+  background: #f8f8f8;
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  display: block;
+}
+
+.link-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.link-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid #eee;
+}
+
+.link-item.phishing {
+  border-color: #ffcccc;
+  background: #fff5f5;
+}
+
+.link-status {
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+}
+
+.link-status.phishing {
+  color: #dc3545;
+  background: #ffebee;
+}
+
+.link-status.legit {
+  color: #28a745;
+  background: #e8f5e9;
+}

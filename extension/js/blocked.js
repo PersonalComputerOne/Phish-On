@@ -1,22 +1,43 @@
 const urlParams = new URLSearchParams(window.location.search);
 const attemptedUrl = urlParams.get("input");
-const suggestedUrl = urlParams.get("closest");
+const suggestedUrl = urlParams.get("similarity_map");
 
 document.getElementById("attempted-url").textContent =
   attemptedUrl || "Unknown URL";
 
-const suggestedElement = document.getElementById("suggested-url");
+const suggestionContainer = document.querySelector(".suggestion-container");
+
+suggestionContainer.innerHTML = "";
+
 if (suggestedUrl) {
-  suggestedElement.textContent = `https://${suggestedUrl}`;
-  const fullUrl = suggestedUrl.startsWith("http")
-    ? suggestedUrl
-    : `https://${suggestedUrl}`;
-  suggestedElement.href = fullUrl;
+  try {
+    const suggestions = JSON.parse(suggestedUrl);
+
+    if (Object.keys(suggestions).length === 0) {
+      suggestionContainer.innerHTML = `<p style="color: #999; font-style: italic;">No suggestions available</p>`;
+    } else {
+      Object.keys(suggestions).forEach((key) => {
+        const fullUrl = key.startsWith("http") ? key : `https://${key}`;
+
+        const suggestionDiv = document.createElement("div");
+        suggestionDiv.classList.add("suggestion");
+
+        const linkElement = document.createElement("a");
+        linkElement.href = fullUrl;
+        linkElement.textContent = fullUrl;
+        linkElement.target = "_blank";
+
+        suggestionDiv.appendChild(linkElement);
+
+        suggestionContainer.appendChild(suggestionDiv);
+      });
+    }
+  } catch (error) {
+    console.error("Error parsing JSON:", error);
+    suggestionContainer.innerHTML = `<p style="color: red;">Invalid suggestion data</p>`;
+  }
 } else {
-  suggestedElement.textContent = "No suggestion available";
-  suggestedElement.removeAttribute("href");
-  suggestedElement.style.color = "#999";
-  suggestedElement.style.fontStyle = "italic";
+  suggestionContainer.innerHTML = `<p style="color: #999; font-style: italic;">No suggestions available</p>`;
 }
 
 const leaveButton = document.getElementById("leave-btn");
