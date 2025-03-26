@@ -35,7 +35,11 @@ go run main.go
 To test the API, you can make a `POST` request with `curl`:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/levenshtein \
+curl -X POST http://localhost:8080/api/v1/levenshtein/sequential \
+-H "Content-Type: application/json" \
+-d '{"urls": ["http://githun.com", "http://github.com", "https://giiiiithdub.com", "https://linkeddin.com", "https://twitter.com"]}'
+
+curl -X POST http://localhost:8080/api/v1/levenshtein/parallel \
 -H "Content-Type: application/json" \
 -d '{"urls": ["http://githun.com", "http://github.com", "https://giiiiithdub.com", "https://linkeddin.com", "https://twitter.com"]}'
 ```

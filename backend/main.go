@@ -5,15 +5,29 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync"
-
-	"runtime"
 
 	"github.com/PersonalComputerOne/Phish-On/algorithms"
 	"github.com/PersonalComputerOne/Phish-On/db"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type LevenshteinResult struct {
+	InputUrl   string `json:"input_url"`
+	Distance   int    `json:"distance"`
+	IsReal     bool   `json:"is_real"`
+	ClosestUrl string `json:"closest_url"`
+	IsPhishing bool   `json:"is_phishing"`
+}
+
+type RequestBody struct {
+	Urls []string `json:"urls"`
+}
+
+const maxDistance = 2
 
 func main() {
 	pool, err := db.Init()
@@ -26,129 +40,178 @@ func main() {
 
 	api := router.Group("/api/v1")
 	{
-		api.POST("/levenshtein/sequential", levenshteinSequentialHandler)
-		api.POST("/levenshtein/parallel", levenshteinParallelHandler)
+		api.POST("/levenshtein/sequential", func(c *gin.Context) {
+			levenshteinHandler(c, pool, false)
+		})
+		api.POST("/levenshtein/parallel", func(c *gin.Context) {
+			levenshteinHandler(c, pool, true)
+		})
 	}
 
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "runtime": runtime.NumCPU()})
 	})
 
 	router.Run(":8080")
 }
 
-func levenshteinSequentialHandler(c *gin.Context) {
-	var jsonData struct {
-		Urls []string `json:"urls"`
-	}
-
+func levenshteinHandler(c *gin.Context, pool *pgxpool.Pool, parallel bool) {
+	var jsonData RequestBody
 	if err := c.ShouldBindJSON(&jsonData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	const maxDistance = 2
-	var domains []string
+	hosts := extractHosts(jsonData.Urls)
 
-	pool, err := db.Init()
+	phishingSet, err := batchPhishingCheck(pool, hosts)
 	if err != nil {
-		log.Printf("DB Initialization error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Initialization error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Phishing check failed"})
 		return
 	}
-	defer pool.Close()
 
-	rows, err := pool.Query(context.Background(), `SELECT url FROM domain`)
+	domains, err := fetchLegitimateDomains(pool)
 	if err != nil {
-		log.Printf("Query error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Query error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get domains"})
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var d string
-		if err := rows.Scan(&d); err != nil {
-			log.Printf("Scan error: %v", err)
-			continue
-		}
-		domains = append(domains, d)
-	}
-
-	var results []struct {
-		InputUrl   string `json:"input_url"`
-		Distance   int    `json:"distance"`
-		IsReal     bool   `json:"is_real"`
-		ClosestUrl string `json:"closest_url"`
-	}
-
-	for _, inputUrl := range jsonData.Urls {
-		host, err := getHost(inputUrl)
-		if err != nil {
-			host = inputUrl
-		}
-
-		minDistance := -1
-		closestUrl := ""
-
-		for _, d := range domains {
-			distance := algorithms.ComputeDistance(host, d)
-			if minDistance == -1 || distance < minDistance {
-				minDistance = distance
-				closestUrl = d
-			}
-		}
-
-		if minDistance > maxDistance {
-			closestUrl = ""
-		}
-		isReal := minDistance == 0
-
-		results = append(results, struct {
-			InputUrl   string `json:"input_url"`
-			Distance   int    `json:"distance"`
-			IsReal     bool   `json:"is_real"`
-			ClosestUrl string `json:"closest_url"`
-		}{
-			InputUrl:   inputUrl,
-			Distance:   minDistance,
-			IsReal:     isReal,
-			ClosestUrl: closestUrl,
-		})
+	var results []LevenshteinResult
+	if parallel {
+		results = computeResultsParallel(jsonData.Urls, hosts, phishingSet, domains)
+	} else {
+		results = computeResultsSequential(jsonData.Urls, hosts, phishingSet, domains)
 	}
 
 	c.IndentedJSON(http.StatusOK, gin.H{"results": results})
 }
 
-func levenshteinParallelHandler(c *gin.Context) {
-	var jsonData struct {
-		Urls []string `json:"urls"`
+func extractHosts(urls []string) []string {
+	hosts := make([]string, len(urls))
+	for i, inputUrl := range urls {
+		host, err := getHost(inputUrl)
+		if err != nil {
+			host = inputUrl
+		}
+		hosts[i] = host
+	}
+	return hosts
+}
+
+func computeResultsSequential(urls, hosts []string, phishingSet map[string]bool, domains []string) []LevenshteinResult {
+	results := make([]LevenshteinResult, len(urls))
+
+	for i, inputUrl := range urls {
+		results[i] = computeResultForUrl(inputUrl, hosts[i], phishingSet, domains)
 	}
 
-	if err := c.ShouldBindJSON(&jsonData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	return results
+}
+
+func computeResultsParallel(urls, hosts []string, phishingSet map[string]bool, domains []string) []LevenshteinResult {
+	results := make([]LevenshteinResult, len(urls))
+
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, runtime.NumCPU())
+
+	for i := range urls {
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(idx int, url, host string) {
+			defer func() {
+				<-sem
+				wg.Done()
+			}()
+
+			results[idx] = computeResultForUrl(url, hosts[i], phishingSet, domains)
+
+		}(i, urls[i], hosts[i])
 	}
 
-	const maxDistance = 2
-	var domains []string
+	wg.Wait()
+	return results
+}
 
-	pool, err := db.Init()
+func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, domains []string) LevenshteinResult {
+	if phishingSet[host] {
+		return LevenshteinResult{
+			InputUrl:   inputUrl,
+			IsPhishing: true,
+			Distance:   -1,
+		}
+	}
+
+	numDomains := len(domains)
+	if numDomains == 0 {
+		return LevenshteinResult{
+			InputUrl:   inputUrl,
+			Distance:   -1,
+			IsReal:     false,
+			ClosestUrl: "",
+			IsPhishing: false,
+		}
+	}
+
+	minDistance := -1
+	closestUrl := ""
+	for _, d := range domains {
+		distance := algorithms.ComputeDistance(host, d)
+		if minDistance == -1 || distance < minDistance {
+			minDistance = distance
+			closestUrl = d
+			if distance == 0 {
+				break
+			}
+		}
+	}
+
+	if minDistance > maxDistance {
+		closestUrl = ""
+	}
+
+	return LevenshteinResult{
+		InputUrl:   inputUrl,
+		Distance:   minDistance,
+		IsReal:     minDistance == 0,
+		ClosestUrl: closestUrl,
+		IsPhishing: false,
+	}
+}
+
+func batchPhishingCheck(pool *pgxpool.Pool, hosts []string) (map[string]bool, error) {
+	phishingSet := make(map[string]bool)
+	if len(hosts) == 0 {
+		return phishingSet, nil
+	}
+
+	rows, err := pool.Query(context.Background(),
+		"SELECT url FROM domain WHERE url = ANY($1) AND is_phishing = TRUE", hosts)
 	if err != nil {
-		log.Printf("DB Initialization error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "DB Initialization error"})
-		return
-	}
-	defer pool.Close()
-
-	rows, err := pool.Query(context.Background(), `SELECT url FROM domain`)
-	if err != nil {
-		log.Printf("Query error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Query error"})
-		return
+		return nil, err
 	}
 	defer rows.Close()
 
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			log.Printf("Scan error: %v", err)
+			continue
+		}
+		phishingSet[url] = true
+	}
+	return phishingSet, nil
+}
+
+func fetchLegitimateDomains(pool *pgxpool.Pool) ([]string, error) {
+	rows, err := pool.Query(context.Background(),
+		"SELECT url FROM domain WHERE is_phishing = FALSE")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var domains []string
 	for rows.Next() {
 		var d string
 		if err := rows.Scan(&d); err != nil {
@@ -157,88 +220,7 @@ func levenshteinParallelHandler(c *gin.Context) {
 		}
 		domains = append(domains, d)
 	}
-
-	var results []struct {
-		InputUrl   string `json:"input_url"`
-		Distance   int    `json:"distance"`
-		IsReal     bool   `json:"is_real"`
-		ClosestUrl string `json:"closest_url"`
-	}
-
-	for _, inputUrl := range jsonData.Urls {
-		host, err := getHost(inputUrl)
-		if err != nil {
-			host = inputUrl
-		}
-
-		numCPUs := runtime.NumCPU()
-		numDomains := len(domains)
-		chunkSize := (numDomains + numCPUs - 1) / numCPUs
-
-		type localMinResult struct {
-			MinDistance int
-			ClosestUrl  string
-		}
-
-		localMins := make(chan localMinResult, numCPUs)
-		var wg sync.WaitGroup
-
-		for i := 0; i < numCPUs; i++ {
-			start := i * chunkSize
-			end := start + chunkSize
-			if end > numDomains {
-				end = numDomains
-			}
-
-			wg.Add(1)
-			go func(start, end int) {
-				defer wg.Done()
-				localMin := localMinResult{MinDistance: -1, ClosestUrl: ""}
-				for j := start; j < end; j++ {
-					distance := algorithms.ComputeDistance(host, domains[j])
-					if localMin.MinDistance == -1 || distance < localMin.MinDistance {
-						localMin.MinDistance = distance
-						localMin.ClosestUrl = domains[j]
-					}
-				}
-				localMins <- localMin
-			}(start, end)
-		}
-
-		go func() {
-			wg.Wait()
-			close(localMins)
-		}()
-
-		minDistance := -1
-		closestUrl := ""
-
-		for localMin := range localMins {
-			if minDistance == -1 || localMin.MinDistance < minDistance {
-				minDistance = localMin.MinDistance
-				closestUrl = localMin.ClosestUrl
-			}
-		}
-
-		if minDistance > maxDistance {
-			closestUrl = ""
-		}
-		isReal := minDistance == 0
-
-		results = append(results, struct {
-			InputUrl   string `json:"input_url"`
-			Distance   int    `json:"distance"`
-			IsReal     bool   `json:"is_real"`
-			ClosestUrl string `json:"closest_url"`
-		}{
-			InputUrl:   inputUrl,
-			Distance:   minDistance,
-			IsReal:     isReal,
-			ClosestUrl: closestUrl,
-		})
-	}
-
-	c.IndentedJSON(http.StatusOK, gin.H{"results": results})
+	return domains, nil
 }
 
 func getHost(inputURL string) (string, error) {
@@ -249,8 +231,6 @@ func getHost(inputURL string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	host := u.Hostname()
-	host = strings.ToLower(host)
-	host = strings.TrimSuffix(host, ".")
-	return host, nil
+	host := strings.ToLower(u.Hostname())
+	return strings.TrimSuffix(host, "."), nil
 }
