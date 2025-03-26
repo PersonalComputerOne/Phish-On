@@ -1,10 +1,9 @@
-package tests
+package main
 
 import (
 	"log"
 	"testing"
 
-	"github.com/PersonalComputerOne/Phish-On/algorithms"
 	"github.com/PersonalComputerOne/Phish-On/db"
 )
 
@@ -15,47 +14,45 @@ func TestPhishingAccuracy(t *testing.T) {
 	}
 	defer pool.Close()
 
-	// Prepare your test data: known phishing and legitimate URLs
 	testData := []struct {
 		url        string
 		isPhishing bool
 	}{
-		{"http://phishing-example.com", true},
-		{"http://legitimate-example.com", false},
-		// Add more test URLs here
-		{"http://another-phishing-site.com", true},
-		{"http://safe-site.org", false},
-		// ...
+		{"http://github.com", false},
+		{"http://githun.com", true},
+		{"http://linkedin.com", false},
+		{"http://linkedin.org", true},
+		{"http://example.org", true},
 	}
 
 	tp, fp, tn, fn := 0, 0, 0, 0
 
 	for _, data := range testData {
-		host, err := algorithms.GetHost(data.url)
+		host, err := getHost(data.url)
 		if err != nil {
 			log.Printf("Error getting host: %v", err)
 			continue
 		}
 
-		phishingSet, err := algorithms.BatchPhishingCheck(pool, []string{host})
+		phishingSet, err := batchPhishingCheck(pool, []string{host})
 		if err != nil {
 			t.Fatalf("Phishing check failed: %v", err)
 		}
 
-		domains, err := algorithms.FetchLegitimateDomains(pool)
+		domains, err := fetchLegitimateDomains(pool)
 		if err != nil {
 			t.Fatalf("Failed to fetch legitimate domains: %v", err)
 		}
 
-		result := algorithms.ComputeResultForUrl(data.url, host, phishingSet, domains)
+		result := computeResultForUrl(data.url, host, phishingSet, domains)
 
-		if data.isPhishing && result.IsPhishing {
+		if data.isPhishing && !result.IsReal {
 			tp++
-		} else if !data.isPhishing && result.IsPhishing {
+		} else if !data.isPhishing && !result.IsReal {
 			fp++
-		} else if !data.isPhishing && !result.IsPhishing {
+		} else if !data.isPhishing && result.IsReal {
 			tn++
-		} else if data.isPhishing && !result.IsPhishing {
+		} else if data.isPhishing && result.IsReal {
 			fn++
 		}
 	}
