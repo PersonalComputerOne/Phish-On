@@ -1,5 +1,6 @@
-const DEFAULT_API_ENDPOINT = "http://localhost:8080/api/v1/levenshtein";
-const CACHE_EXPIRATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const DEFAULT_API_ENDPOINT =
+  "http://localhost:8080/api/v1/levenshtein/parallel";
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.tabs.create({ url: "html/landing.html" });
@@ -51,7 +52,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     const { apiEndpoint } = await chrome.storage.local.get("apiEndpoint");
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 5 second timeout
 
     try {
       const response = await fetch(apiEndpoint, {
@@ -73,7 +74,10 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
       }
 
       const data = await response.json();
+
       const result = data.results[0];
+
+      console.log("Result:", JSON.stringify(result));
 
       result.timestamp = now;
 
@@ -96,7 +100,9 @@ function redirectToBlockPage(tabId, result) {
   const blockedUrl = chrome.runtime.getURL(
     `html/blocked.html?input=${encodeURIComponent(
       result.input_url
-    )}&closest=${encodeURIComponent(result.closest_url)}`
+    )}&similarity_map=${encodeURIComponent(
+      JSON.stringify(result.similarity_map)
+    )}`
   );
 
   chrome.tabs.update(tabId, { url: blockedUrl });
