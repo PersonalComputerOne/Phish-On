@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -16,11 +17,10 @@ import (
 )
 
 type LevenshteinResult struct {
-	InputUrl   string `json:"input_url"`
-	Distance   int    `json:"distance"`
-	IsReal     bool   `json:"is_real"`
-	ClosestUrl string `json:"closest_url"`
-	IsPhishing bool   `json:"is_phishing"`
+	InputUrl      string             `json:"input_url"`
+	IsReal        bool               `json:"is_real"`
+	SimilarityMap map[string]float64 `json:"similarity_map"`
+	IsPhishing    bool               `json:"is_phishing"`
 }
 
 type RequestBody struct {
@@ -138,7 +138,6 @@ func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, dom
 		return LevenshteinResult{
 			InputUrl:   inputUrl,
 			IsPhishing: true,
-			Distance:   -1,
 		}
 	}
 
@@ -146,37 +145,43 @@ func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, dom
 	if numDomains == 0 {
 		return LevenshteinResult{
 			InputUrl:   inputUrl,
-			Distance:   -1,
 			IsReal:     false,
-			ClosestUrl: "",
 			IsPhishing: false,
 		}
 	}
 
-	minDistance := -1
-	closestUrl := ""
+	var exactMatch string
+	similarityMap := make(map[string]float64)
+	threshold := 0.85
+
 	for _, d := range domains {
 		distance := algorithms.ComputeDistance(host, d)
-		if minDistance == -1 || distance < minDistance {
-			minDistance = distance
-			closestUrl = d
-			if distance == 0 {
-				break
-			}
+		similarity := similarityIndex(host, d)
+
+		if distance == 0 {
+			exactMatch = d
+			break
+		} else if similarity >= threshold {
+			similarityMap[d] = similarity
 		}
 	}
 
-	if minDistance > maxDistance {
-		closestUrl = ""
-	}
+	isReal := exactMatch != "" // isReal is true only if there's an exact match
 
 	return LevenshteinResult{
-		InputUrl:   inputUrl,
-		Distance:   minDistance,
-		IsReal:     minDistance == 0,
-		ClosestUrl: closestUrl,
-		IsPhishing: false,
+		InputUrl:      inputUrl,
+		IsReal:        isReal,
+		SimilarityMap: similarityMap,
+		IsPhishing:    false,
 	}
+}
+
+// similarityIndex calculates the similarity index based on Levenshtein distance.
+func similarityIndex(a, b string) float64 {
+	distance := algorithms.ComputeDistance(a, b)
+	maxLen := math.Max(float64(len(a)), float64(len(b)))
+	normalizedDistance := float64(distance) / maxLen
+	return 1 - normalizedDistance
 }
 
 func batchPhishingCheck(pool *pgxpool.Pool, hosts []string) (map[string]bool, error) {
