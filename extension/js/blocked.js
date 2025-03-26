@@ -24,3 +24,23 @@ leaveButton.addEventListener("click", () => {
   window.close();
   chrome.tabs.create({ url: "chrome://newtab" });
 });
+
+const visitButton = document.getElementById("visit-btn");
+visitButton.addEventListener("click", () => {
+  window.open("_self");
+});
+
+function showPhishingWarning(isPhishing) {
+  const warningText = document.getElementById("phishing-warning");
+  const defaultText = document.getElementById("default-warning");
+
+  if (isPhishing) {
+    warningText.style.display = "block";
+    defaultText.style.display = "none";
+  } else {
+    warningText.style.display = "none";
+  }
+}
+
+// const isPhishingDetected = true;
+// showPhishingWarning(isPhishingDetected);

@@ -10,10 +10,15 @@
     <div class="container">
       <div class="header">
         <h1>Website Blocked</h1>
-        <p>
+        <p id="default-warning">
           This website is malicious and may be designed to steal your personal
           information. Proceed with caution or avoid entering any sensitive
           data.
+        </p>
+
+        <p id="phishing-warning" style="display: none;">
+          This website is a phishing site, designed to steal your personal
+          information. Proceed with caution, avoid entering.
         </p>
       </div>
 
@@ -21,6 +26,11 @@
         <div class="url-section">
           <h2>You attempted to visit:</h2>
           <div class="url-box" id="attempted-url"></div>
+        </div>
+        
+        <div class="url-section">
+          <h2>Levenshtein Distance:</h2>
+          <div class="levenshtein" id="levenshtein-distance"></div>
         </div>
 
         <div class="url-section">
@@ -35,7 +45,8 @@
       </div>
 
       <div class="action-buttons">
-        <button class="leave-btn" id="leave-btn">Leave website</button>
+        <button class="leave-btn" id="leave-btn">Leave Website</button>
+        <button class="visit-btn" id="visit-btn">Visit Website</button>
       </div>
 
       <div class="footer">© 2025 Phish On! All rights reserved.</div>

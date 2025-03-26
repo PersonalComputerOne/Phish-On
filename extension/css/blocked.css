@@ -69,7 +69,7 @@ h1 {
 
 .url-box {
   background-color: #f8f9fa;
-  border-left: 4px solid #ff6b6b;
+  border-left: 4px solid #b0333b;
   padding: 15px;
   border-radius: 6px;
   word-break: break-all;
@@ -81,6 +81,17 @@ h1 {
 .suggestion {
   background-color: #f0f7ff;
   border-left: 4px solid #4285f4;
+  padding: 15px;
+  border-radius: 6px;
+  word-break: break-all;
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  color: #555;
+}
+
+.levenshtein {
+  background-color: #f8f9fa;
+  border-left: 4px solid #ff6b6b;
   padding: 15px;
   border-radius: 6px;
   word-break: break-all;
@@ -110,19 +121,33 @@ h1 {
 }
 
 .leave-btn {
-  background-color: red;
+  background-color: #e60024;
   color: #fff;
-  border: none;
+  border: 1px solid #e60024;
   border-radius: 4px;
   font-size: 1rem;
   padding: 0.75rem 1.5rem;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-right: 30px;
 }
 
 .leave-btn:hover {
-  background-color: #555;
-  transform: scale(1.02);
+  background-color: #2b3537;
+  border: 1px solid #2b3537;
+}
+
+.visit-btn {
+  border: 1px solid #2b3537;
+  border-radius: 4px;
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  margin-right: 30px;
+}
+
+.visit-btn:hover {
+  background-color: #2b3537;
+  color: white;
 }
 
 .footer {

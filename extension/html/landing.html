@@ -5,131 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Phish On!</title>
     <link rel="stylesheet" href="/css/landing.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
     <style>
       #hello-text {
-          color: white;
+        color: white;
       }
       .hello {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          height: 100vh;
-          font-size: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-size: 40px;
       }
 
       .loading-screen {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100vh;
-          background-color: black;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 9999;
-          transition: opacity 1s;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background-color: black;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 1s;
       }
 
       .content {
-          display: none;
-          text-align: center;
-          opacity: 0;
-          transform: translateY(100px); /* Initially moved down */
-          transition: opacity 1s ease, transform 1s ease; /* Smooth transition */
+        display: none;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(100px); /* Initially moved down */
+        transition: opacity 1s ease, transform 1s ease; /* Smooth transition */
       }
-  </style>
+    </style>
   </head>
   <body>
+    <img
+      class="dot"
+      data
+      src="../assets/Fishing Rod & Red Fish 3D--cursor--SweezyCursors.png"
+      alt="rod"
+    />
+    <img
+      class="dot-img"
+      data-img
+      src="../assets/Fishing Rod & Red Fish 3D--pointer--SweezyCursors.png"
+      alt="fish"
+    />
 
     <div class="loading-screen" id="loading-screen">
       <div class="hello" id="hello-text">👋 Hello</div>
-  </div>
-
-  <div class="content" id="content">
-
-    <div class="home-container"> 
-      <header class="header">
-        <div class="logo-container">
-          <img src="/assets/logo.png" alt="Phish On! Logo" class="logo" />
-          <h1 class="logo-text">Phish On!</h1>
-        </div>
-        <nav class="nav-links">
-          <button class="btn-about" id="about-btn">About</button>
-          <button class="btn-get-started">Get Started</button>
-        </nav>
-      </header>
-      <main>
-        <h1>Phish On! - Empowering Safe Browsing.</h1>
-        <p class="subtitle-home">Real-time phishing URL protection.</p>
-
-        <div class="carousel" id="carousel">
-          <div class="modal" id="modal">
-            <img class="modal-image" id="modal-image" />
-          </div> 
-          <div class="carousel-content">
-            <button class="prev" id="prev-btn">&#10094;</button>
-            <div class="image-container">
-              <img
-                alt="Carousel Image"
-                class="carousel-image"
-                id="current-image"
-              />
-              <img
-                alt="Carousel Image"
-                class="carousel-image"
-                id="curr-image"
-              />
-            </div>
-            <button class="next" id="next-btn">&#10095;</button>
-          </div>
-          <div class="thumbnails" id="thumbnails"></div>
-        </div>
-
-        <button class="try-now">Try Now</button>
-
-        <p class="mini-text" id="about-target">
-          <em>
-            This tool detects phishing URLs in real-time, keeping users safe
-            from online threats.
-          </em>
-        </p>
-
-        <section class="about">
-          <h1>About Phish On!</h1>
-          <div class="text-container">
-            <p>
-              As phishing scams grow increasingly sophisticated, Phish On! aims
-              to shield users by identifying and warning against URLs that
-              closely resemble legitimate websites. Initiated as a solution for
-              real-time phishing detection, Phish On! leverages the Levenshtein
-              algorithm to measure URL similarity against a comprehensive
-              database of verified sites, immediately alerting users to
-              potentially malicious links.
-            </p>
-            <p>
-              The core functionalities of Phish On! include real-time URL
-              scanning, similarity analysis, and instant alerts to flag
-              potentially dangerous links. The extension processes each URL
-              within the Document Object Model (DOM) of a webpage, analyzing
-              links as they appear.
-            </p>
-            <p>
-              By employing parallel computing techniques, Phish On! optimizes
-              its detection capabilities, allowing for rapid analysis across
-              multiple links. As a result, users can quickly recognize
-              suspicious sites, minimizing the risk of unauthorized access to
-              sensitive information.
-            </p>
-          </div>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <p>© 2025 Phish On! All rights reserved.</p>
-      </footer>
     </div>
-  </div>
+
+    <div class="content" id="content">
+      <div class="home-container">
+        <header class="header">
+          <div class="logo-container">
+            <img src="/assets/logo.png" alt="Phish On! Logo" class="logo" />
+            <h1 class="logo-text">Phish On!</h1>
+          </div>
+          <nav class="nav-links">
+            <button class="btn-about" id="about-btn">About</button>
+            <button class="btn-get-started">Get Started</button>
+          </nav>
+        </header>
+        <main>
+          <h1>Phish On! - Empowering Safe Browsing.</h1>
+          <p class="subtitle-home">Real-time phishing URL protection.</p>
+
+          <div class="carousel" id="carousel">
+            <div class="modal" id="modal">
+              <img class="modal-image" id="modal-image" />
+            </div>
+            <div class="carousel-content">
+              <button class="prev" id="prev-btn">&#10094;</button>
+              <div class="image-container">
+                <img
+                  alt="Carousel Image"
+                  class="carousel-image"
+                  id="current-image"
+                />
+                <img
+                  alt="Carousel Image"
+                  class="carousel-image"
+                  id="curr-image"
+                />
+              </div>
+              <button class="next" id="next-btn">&#10095;</button>
+            </div>
+            <div class="thumbnails" id="thumbnails"></div>
+          </div>
+
+          <button class="try-now">Try Now</button>
+
+          <p class="mini-text">
+            <em>
+              This tool detects phishing URLs in real-time, keeping users safe
+              from online threats.
+            </em>
+          </p>
+        </main>
+        <div class="img-glass" id="about-target">
+          <section class="about">
+            <h1>About Phish On!</h1>
+            <hr />
+
+            <div class="text-container">
+              <p>
+                As phishing scams grow increasingly sophisticated, Phish On!
+                aims to shield users by identifying and warning against URLs
+                that closely resemble legitimate websites. Initiated as a
+                solution for real-time phishing detection, Phish On! leverages
+                the Levenshtein algorithm to measure URL similarity against a
+                comprehensive database of verified sites, immediately alerting
+                users to potentially malicious links.
+              </p>
+              <p>
+                The core functionalities of Phish On! include real-time URL
+                scanning, similarity analysis, and instant alerts to flag
+                potentially dangerous links. The extension processes each URL
+                within the Document Object Model (DOM) of a webpage, analyzing
+                links as they appear.
+              </p>
+              <p>
+                By employing parallel computing techniques, Phish On! optimizes
+                its detection capabilities, allowing for rapid analysis across
+                multiple links. As a result, users can quickly recognize
+                suspicious sites, minimizing the risk of unauthorized access to
+                sensitive information.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <footer class="footer">
+          <p>© 2025 Phish On! All rights reserved.</p>
+        </footer>
+      </div>
+    </div>
+
     <script src="/js/landing.js"></script>
     <script src="/js/hello.js"></script>
   </body>
