@@ -4,6 +4,9 @@
   "version": "1.0",
   "description": "Phish On! is a Chrome extension that blocks phishing websites.",
   "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
     "storage",
     "webRequest",
     "declarativeNetRequest",
