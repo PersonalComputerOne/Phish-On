@@ -8,24 +8,32 @@
   </head>
   <body>
     <div class="popup-container">
-    <h2>Phish On!</h2>
-    
-    <div class="form-group">
-      <label for="url">Detected URL:</label>
-      <label for="url">Possible URL:</label>
-      <label for="url">Levenshtein Distance:</label>
-      <label for="url">URL:</label>
-      <input
-        type="text"
-        id="url"
-        placeholder="Enter URL or leave blank for current tab"
-      /> 
-    </div>
-  
-    <button id="check">Check</button>
+      <h2>Phish On!</h2>
 
-    <div class="status" id="status"></div>
-</div>
+      <!-- Existing manual check section -->
+      <div class="form-group">
+        <input type="text" id="url" placeholder="Enter URL to verify" />
+        <button id="check">Verify URL</button>
+      </div>
+
+      <!-- Automatic scan results -->
+      <div class="scan-results">
+        <h3>Page Link Analysis</h3>
+        <div class="result-summary">
+          <div class="stat-box">
+            <span class="stat-number" id="totalLinks">0</span>
+            <span class="stat-label">Links Found</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-number" id="phishingLinks">0</span>
+            <span class="stat-label">Potential Phishing</span>
+          </div>
+        </div>
+        <div class="link-list" id="linkList"></div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
     <script src="/js/popup.js"></script>
   </body>
 </html>
