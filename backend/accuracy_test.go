@@ -1,34 +1,67 @@
 package main
 
 import (
+	"encoding/csv"
 	"log"
+	"math/rand"
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/PersonalComputerOne/Phish-On/db"
 )
 
 func TestPhishingAccuracy(t *testing.T) {
+	const testLimit = 5 // Change this value to control how many URLs to test
+
 	pool, err := db.Init()
 	if err != nil {
 		t.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer pool.Close()
 
-	testData := []struct {
-		url        string
-		isPhishing bool
-	}{
-		{"http://github.com", false},
-		{"http://githun.com", true},
-		{"http://linkedin.com", false},
-		{"http://linkedin.org", true},
-		{"http://example.org", true},
+	file, err := os.Open("../datasets/new_data_urls.csv")
+	if err != nil {
+		t.Fatalf("Failed to open test data file: %v", err)
 	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	_, err = reader.Read()
+	if err != nil {
+		t.Fatalf("Failed to read CSV header: %v", err)
+	}
+
+	records, err := reader.ReadAll()
+	if err != nil {
+		t.Fatalf("Failed to read CSV records: %v", err)
+	}
+
+	if len(records) > testLimit {
+		rand.Shuffle(len(records), func(i, j int) {
+			records[i], records[j] = records[j], records[i]
+		})
+		records = records[:testLimit]
+	}
+
+	t.Logf("Testing %d URLs from the dataset", len(records))
 
 	tp, fp, tn, fn := 0, 0, 0, 0
 
-	for _, data := range testData {
-		host, err := getHost(data.url)
+	domains, err := fetchLegitimateDomains(pool)
+	if err != nil {
+		t.Fatalf("Failed to fetch legitimate domains: %v", err)
+	}
+
+	for _, record := range records {
+		url := record[0]
+		status, err := strconv.Atoi(record[1])
+		if err != nil {
+			t.Fatalf("Failed to parse status value: %v", err)
+		}
+		isPhishing := status == 0
+
+		host, err := getHost(url)
 		if err != nil {
 			log.Printf("Error getting host: %v", err)
 			continue
@@ -39,20 +72,15 @@ func TestPhishingAccuracy(t *testing.T) {
 			t.Fatalf("Phishing check failed: %v", err)
 		}
 
-		domains, err := fetchLegitimateDomains(pool)
-		if err != nil {
-			t.Fatalf("Failed to fetch legitimate domains: %v", err)
-		}
+		result := computeResultForUrl(url, host, phishingSet, domains)
 
-		result := computeResultForUrl(data.url, host, phishingSet, domains)
-
-		if data.isPhishing && !result.IsReal {
+		if isPhishing && !result.IsReal {
 			tp++
-		} else if !data.isPhishing && !result.IsReal {
+		} else if !isPhishing && !result.IsReal {
 			fp++
-		} else if !data.isPhishing && result.IsReal {
+		} else if !isPhishing && result.IsReal {
 			tn++
-		} else if data.isPhishing && result.IsReal {
+		} else if isPhishing && result.IsReal {
 			fn++
 		}
 	}
