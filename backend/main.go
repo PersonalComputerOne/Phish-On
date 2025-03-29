@@ -27,8 +27,6 @@ type RequestBody struct {
 	Urls []string `json:"urls"`
 }
 
-const maxDistance = 2
-
 func main() {
 	pool, err := db.Init()
 	if err != nil {
