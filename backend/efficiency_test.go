@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/PersonalComputerOne/Phish-On/db"
 )
 
 func loadTestUrls(limit int) ([]string, error) {
@@ -18,7 +20,6 @@ func loadTestUrls(limit int) ([]string, error) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	// Skip header row
 	_, err = reader.Read()
 	if err != nil {
 		return nil, err
@@ -29,7 +30,6 @@ func loadTestUrls(limit int) ([]string, error) {
 		return nil, err
 	}
 
-	// Randomly select records if we have more than the limit
 	if len(records) > limit {
 		rand.Shuffle(len(records), func(i, j int) {
 			records[i], records[j] = records[j], records[i]
@@ -46,17 +46,27 @@ func loadTestUrls(limit int) ([]string, error) {
 }
 
 func benchmarkPerformance(urls []string, iterations int) {
+	pool, err := db.Init()
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer pool.Close()
+
+	domains, err := fetchLegitimateDomains(pool)
+	if err != nil {
+		log.Fatalf("Failed to fetch legitimate domains: %v", err)
+	}
 	// Sequential performance
 	startSeq := time.Now()
-	for i := 0; i < iterations; i++ {
-		computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, []string{"example.com", "test.org", "another.net"}) // Mock phishingSet and domains
+	for range iterations {
+		computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains)
 	}
 	seqDuration := time.Since(startSeq)
 
 	// Parallel performance
 	startPar := time.Now()
-	for i := 0; i < iterations; i++ {
-		computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, []string{"example.com", "test.org", "another.net"}) // Mock phishingSet and domains
+	for range iterations {
+		computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains)
 	}
 	parDuration := time.Since(startPar)
 
@@ -73,7 +83,7 @@ func benchmarkPerformance(urls []string, iterations int) {
 }
 
 func TestPerformance(t *testing.T) {
-	const testLimit = 20 // Change this value to control how many URLs to test
+	const testLimit = 5  // Change this value to control how many URLs to test
 	const iterations = 5 // Number of times to run the benchmark
 
 	urls, err := loadTestUrls(testLimit)
