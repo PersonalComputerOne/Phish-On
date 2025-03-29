@@ -58,14 +58,14 @@ func benchmarkPerformance(urls []string, iterations int) {
 	}
 	// Sequential performance
 	startSeq := time.Now()
-	for range iterations {
+	for i := 0; i < iterations; i++ {
 		computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains)
 	}
 	seqDuration := time.Since(startSeq)
 
 	// Parallel performance
 	startPar := time.Now()
-	for range iterations {
+	for i := 0; i < iterations; i++ {
 		computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains)
 	}
 	parDuration := time.Since(startPar)
