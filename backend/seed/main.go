@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/csv"
@@ -9,9 +10,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/PersonalComputerOne/Phish-On/db"
 )
@@ -122,6 +126,8 @@ func main() {
 
 		log.Printf("Processed %s: %d new domains inserted", source.Name, totalInserted)
 	}
+
+	seedPhishtank(conn)
 }
 
 func downloadDataset(url string) ([]byte, error) {
@@ -201,4 +207,79 @@ func parseCSV(r io.Reader, domainColumn int) ([]string, error) {
 	}
 
 	return domains, nil
+}
+
+func getSourceID(ctx context.Context, pool *pgxpool.Pool, name, urlStr string) (int, error) {
+	var id int
+	err := pool.QueryRow(ctx, "SELECT id FROM source WHERE name = $1", name).Scan(&id)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			err = pool.QueryRow(ctx,
+				"INSERT INTO source(name, url, added_at, last_crawled_at) VALUES($1, $2, $3, $4) RETURNING id",
+				name, urlStr, time.Now(), time.Now(),
+			).Scan(&id)
+			if err != nil {
+				return 0, fmt.Errorf("failed to insert source: %w", err)
+			}
+		} else {
+			return 0, fmt.Errorf("failed to query source: %w", err)
+		}
+	}
+	return id, nil
+}
+
+func seedPhishtank(pool *pgxpool.Pool) {
+	ctx := context.Background()
+
+	sourceName := "phishtank"
+	sourceURL := "https://www.phishtank.org"
+	sourceID, err := getSourceID(ctx, pool, sourceName, sourceURL)
+	if err != nil {
+		log.Fatalf("Error getting source ID: %v", err)
+	}
+
+	file, err := os.Open("seed/phishtank.txt")
+	if err != nil {
+		log.Fatalf("Failed to open file: %v", err)
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
+		os.Exit(1)
+	}
+
+	insertSQL := `
+		INSERT INTO domain(url, is_phishing, source_id, added_at)
+		VALUES($1, $2, $3, $4)
+		ON CONFLICT (url) DO NOTHING
+	`
+
+	total := len(lines)
+	if total == 0 {
+		fmt.Println("No lines to process.")
+		return
+	}
+
+	insertedCount := 0
+
+	for _, line := range lines {
+		_, err = pool.Exec(ctx, insertSQL, line, true, sourceID, time.Now())
+		if err != nil {
+			continue
+		}
+
+		insertedCount++
+		fmt.Printf("\rInserted %d/%d", insertedCount, total)
+	}
+
+	log.Println("Finished processing file.")
 }
