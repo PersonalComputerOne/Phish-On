@@ -81,7 +81,28 @@ func levenshteinHandler(c *gin.Context, pool *pgxpool.Pool, parallel bool) {
 		results = computeResultsSequential(jsonData.Urls, hosts, phishingSet, domains)
 	}
 
+	var suspiciousLinks []string
+	for _, result := range results {
+		if !result.IsReal && !result.IsPhishing {
+			suspiciousLinks = append(suspiciousLinks, result.InputUrl)
+		}
+	}
+
+	if err := insertSuspiciousLinks(pool, suspiciousLinks); err != nil {
+		log.Printf("Failed to insert suspicious links: %v", err)
+	}
+
 	c.IndentedJSON(http.StatusOK, gin.H{"results": results})
+}
+
+func insertSuspiciousLinks(pool *pgxpool.Pool, urls []string) error {
+	if len(urls) == 0 {
+		return nil
+	}
+	_, err := pool.Exec(context.Background(),
+		"INSERT INTO suspicious_links (url) SELECT unnest($1::text[]) ON CONFLICT (url) DO NOTHING",
+		urls)
+	return err
 }
 
 func extractHosts(urls []string) []string {
