@@ -62,7 +62,7 @@ func levenshteinHandler(c *gin.Context, pool *pgxpool.Pool, parallel bool) {
 
 	hosts := extractHosts(jsonData.Urls)
 
-	phishingSet, err := batchPhishingCheck(pool, hosts)
+	phishingSet, err := batchPhishingCheck(pool, jsonData.Urls)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Phishing check failed"})
 		return
@@ -81,7 +81,28 @@ func levenshteinHandler(c *gin.Context, pool *pgxpool.Pool, parallel bool) {
 		results = computeResultsSequential(jsonData.Urls, hosts, phishingSet, domains)
 	}
 
+	var suspiciousLinks []string
+	for _, result := range results {
+		if !result.IsReal && !result.IsPhishing {
+			suspiciousLinks = append(suspiciousLinks, result.InputUrl)
+		}
+	}
+
+	if err := insertSuspiciousLinks(pool, suspiciousLinks); err != nil {
+		log.Printf("Failed to insert suspicious links: %v", err)
+	}
+
 	c.IndentedJSON(http.StatusOK, gin.H{"results": results})
+}
+
+func insertSuspiciousLinks(pool *pgxpool.Pool, urls []string) error {
+	if len(urls) == 0 {
+		return nil
+	}
+	_, err := pool.Exec(context.Background(),
+		"INSERT INTO suspicious_links (url) SELECT unnest($1::text[]) ON CONFLICT (url) DO NOTHING",
+		urls)
+	return err
 }
 
 func extractHosts(urls []string) []string {
@@ -122,7 +143,7 @@ func computeResultsParallel(urls, hosts []string, phishingSet map[string]bool, d
 				wg.Done()
 			}()
 
-			results[idx] = computeResultForUrl(url, hosts[i], phishingSet, domains)
+			results[idx] = computeResultForUrl(url, host, phishingSet, domains)
 
 		}(i, urls[i], hosts[i])
 	}
@@ -132,7 +153,7 @@ func computeResultsParallel(urls, hosts []string, phishingSet map[string]bool, d
 }
 
 func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, domains []string) LevenshteinResult {
-	if phishingSet[host] {
+	if phishingSet[inputUrl] {
 		return LevenshteinResult{
 			InputUrl:   inputUrl,
 			IsPhishing: true,

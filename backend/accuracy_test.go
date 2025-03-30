@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/csv"
-	"log"
 	"math/rand"
 	"os"
 	"strconv"
@@ -12,7 +11,7 @@ import (
 )
 
 func TestPhishingAccuracy(t *testing.T) {
-	const testLimit = 5 // Change this value to control how many URLs to test
+	const testLimit = 100 // Change this value to control how many URLs to test
 
 	pool, err := db.Init()
 	if err != nil {
@@ -31,6 +30,7 @@ func TestPhishingAccuracy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read CSV header: %v", err)
 	}
+	defer file.Close()
 
 	records, err := reader.ReadAll()
 	if err != nil {
@@ -46,12 +46,12 @@ func TestPhishingAccuracy(t *testing.T) {
 
 	t.Logf("Testing %d URLs from the dataset", len(records))
 
-	tp, fp, tn, fn := 0, 0, 0, 0
-
-	domains, err := fetchLegitimateDomains(pool)
-	if err != nil {
-		t.Fatalf("Failed to fetch legitimate domains: %v", err)
-	}
+	var urls []string
+	testCases := make([]struct {
+		url        string
+		isPhishing bool
+		host       string
+	}, 0, len(records))
 
 	for _, record := range records {
 		url := record[0]
@@ -63,31 +63,60 @@ func TestPhishingAccuracy(t *testing.T) {
 
 		host, err := getHost(url)
 		if err != nil {
-			log.Printf("Error getting host: %v", err)
+			t.Logf("Skipping URL due to host error: %s | Error: %v", url, err)
 			continue
 		}
 
-		phishingSet, err := batchPhishingCheck(pool, []string{host})
-		if err != nil {
-			t.Fatalf("Phishing check failed: %v", err)
-		}
+		urls = append(urls, url)
+		testCases = append(testCases, struct {
+			url        string
+			isPhishing bool
+			host       string
+		}{url, isPhishing, host})
+	}
 
-		result := computeResultForUrl(url, host, phishingSet, domains)
+	phishingSet, err := batchPhishingCheck(pool, urls)
+	if err != nil {
+		t.Fatalf("Phishing check failed: %v", err)
+	}
 
-		if isPhishing && !result.IsReal {
+	domains, err := fetchLegitimateDomains(pool)
+	if err != nil {
+		t.Fatalf("Failed to fetch legitimate domains: %v", err)
+	}
+
+	tp, fp, tn, fn := 0, 0, 0, 0
+	for _, tc := range testCases {
+		result := computeResultForUrl(tc.url, tc.host, phishingSet, domains)
+
+		switch {
+		case tc.isPhishing && result.IsPhishing:
 			tp++
-		} else if !isPhishing && !result.IsReal {
+		case !tc.isPhishing && result.IsPhishing:
 			fp++
-		} else if !isPhishing && result.IsReal {
+		case !tc.isPhishing && !result.IsPhishing:
 			tn++
-		} else if isPhishing && result.IsReal {
+		case tc.isPhishing && !result.IsPhishing:
 			fn++
 		}
 	}
 
-	precision := float64(tp) / float64(tp+fp)
-	recall := float64(tp) / float64(tp+fn)
-	f1 := 2 * (precision * recall) / (precision + recall)
+	var precision, recall, f1 float64
+	if tp+fp > 0 {
+		precision = float64(tp) / float64(tp+fp)
+	} else {
+		precision = 0.0
+	}
+	if tp+fn > 0 {
+		recall = float64(tp) / float64(tp+fn)
+	} else {
+		recall = 0.0
+	}
+	if precision+recall > 0 {
+		f1 = 2 * (precision * recall) / (precision + recall)
+	} else {
+		f1 = 0.0
+	}
 
 	t.Logf("True Positives: %d", tp)
 	t.Logf("False Positives: %d", fp)
