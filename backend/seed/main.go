@@ -52,24 +52,10 @@ func main() {
 			},
 		},
 		{
-			Name: "Domcop Top 10 Million Domains",
-			URL:  "https://www.domcop.com/files/top/top10milliondomains.csv.zip",
-			Processor: func(data []byte) ([]string, error) {
-				return processZipFile(data, ".csv", 1)
-			},
-		},
-		{
 			Name: "Tranco Top 1 Million",
-			URL:  "https://tranco-list.eu/download/24879/full",
+			URL:  "https://tranco-list.eu/top-1m.csv.zip",
 			Processor: func(data []byte) ([]string, error) {
-				return parseCSV(bytes.NewReader(data), 1)
-			},
-		},
-		{
-			Name: "Cloudflare Radar Top Domains",
-			URL:  "https://radar.cloudflare.com/charts/LargerTopDomainsTable/attachment?id=1257&top=1000000",
-			Processor: func(data []byte) ([]string, error) {
-				return parseCSV(bytes.NewReader(data), 0)
+				return processZipFile(data, "top-1m.csv", 1)
 			},
 		},
 		{
@@ -149,10 +135,6 @@ func downloadDataset(url string) ([]byte, error) {
 		"User-Agent",
 		"Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
 	)
-
-	if strings.Contains(url, "builtwith.com") {
-		req.Header.Set("Accept", "application/zip")
-	}
 
 	resp, err := client.Do(req)
 	if err != nil {
