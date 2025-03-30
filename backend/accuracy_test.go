@@ -30,6 +30,7 @@ func TestPhishingAccuracy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read CSV header: %v", err)
 	}
+	defer file.Close()
 
 	records, err := reader.ReadAll()
 	if err != nil {
