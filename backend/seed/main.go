@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -100,9 +101,9 @@ func main() {
 		batch := &pgx.Batch{}
 		for _, domain := range domains {
 			batch.Queue(
-				`INSERT INTO domain (url, source_id) 
-        VALUES ($1, $2) 
-        ON CONFLICT (url) DO NOTHING`, // Conflict on url column
+				`INSERT INTO domain (url, source_id)
+	      VALUES ($1, $2)
+	      ON CONFLICT (url) DO NOTHING`, // Conflict on url column
 				strings.ToLower(domain),
 				sourceID,
 			)
@@ -128,6 +129,7 @@ func main() {
 	}
 
 	seedPhishtank(conn)
+	processPhishingData(conn, "../datasets/new_data_urls.csv")
 }
 
 func downloadDataset(url string) ([]byte, error) {
@@ -282,4 +284,101 @@ func seedPhishtank(pool *pgxpool.Pool) {
 	}
 
 	log.Println("Finished processing file.")
+}
+
+func processPhishingData(conn *pgxpool.Pool, path string) {
+	var sourceID int
+	err := conn.QueryRow(context.Background(),
+		`INSERT INTO source (name, url) VALUES ($1, $2)
+		ON CONFLICT (url) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id`,
+		"Phishing Dataset", path,
+	).Scan(&sourceID)
+	if err != nil {
+		log.Printf("Error inserting phishing source: %v", err)
+		return
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		log.Printf("Error opening phishing CSV: %v", err)
+		return
+	}
+	defer file.Close()
+
+	r := csv.NewReader(file)
+
+	// Skip header
+	if _, err := r.Read(); err != nil {
+		log.Printf("Error reading phishing header: %v", err)
+		return
+	}
+
+	batch := &pgx.Batch{}
+	var recordCount int
+
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Printf("Error reading phishing record: %v", err)
+			continue
+		}
+
+		if len(record) < 2 {
+			continue
+		}
+
+		status, err := strconv.Atoi(strings.TrimSpace(record[1]))
+		if err != nil {
+			continue // Skip invalid status entries
+		}
+
+		domain := strings.TrimSpace(record[0])
+		if domain == "" {
+			continue
+		}
+
+		var isPhishing bool
+		switch status {
+		case 0:
+			isPhishing = true
+		case 1:
+			isPhishing = false
+		default:
+			continue // Skip unknown status codes
+		}
+
+		batch.Queue(
+			`INSERT INTO domain (url, source_id, is_phishing) 
+			VALUES ($1, $2, $3) 
+			ON CONFLICT (url) DO UPDATE SET 
+				source_id = EXCLUDED.source_id,
+				is_phishing = EXCLUDED.is_phishing`,
+			strings.ToLower(domain),
+			sourceID,
+			isPhishing,
+		)
+		recordCount++
+	}
+
+	results := conn.SendBatch(context.Background(), batch)
+	defer results.Close()
+
+	var totalProcessed int
+	for i := 0; i < recordCount; i++ {
+		_, err := results.Exec()
+		if err == nil {
+			totalProcessed++
+		}
+	}
+
+	if err := results.Close(); err != nil {
+		log.Printf("Error finalizing phishing batch: %v", err)
+		return
+	}
+
+	log.Printf("Processed phishing data: %d records (0=phishing, 1=clean)", totalProcessed)
 }
