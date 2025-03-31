@@ -5,7 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"runtime"
 	"testing"
 	"time"
 
@@ -74,16 +73,14 @@ func benchmarkPerformance(urls []string, iterations int) {
 	avgSeqTime := seqDuration.Seconds() / float64(iterations)
 	avgParTime := parDuration.Seconds() / float64(iterations)
 	speedup := avgSeqTime / avgParTime
-	efficiency := speedup / float64(runtime.NumCPU())
 
 	log.Printf("Sequential Avg Time: %.4f seconds", avgSeqTime)
 	log.Printf("Parallel Avg Time: %.4f seconds", avgParTime)
 	log.Printf("Speedup: %.2fx", speedup)
-	log.Printf("Efficiency: %.2f", efficiency)
 }
 
 func TestPerformance(t *testing.T) {
-	const testLimit = 5  // Change this value to control how many URLs to test
+	const testLimit = 15 // Change this value to control how many URLs to test
 	const iterations = 5 // Number of times to run the benchmark
 
 	urls, err := loadTestUrls(testLimit)

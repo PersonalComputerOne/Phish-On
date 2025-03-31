@@ -11,7 +11,7 @@ import (
 )
 
 func TestPhishingAccuracy(t *testing.T) {
-	const testLimit = 100 // Change this value to control how many URLs to test
+	const testLimit = 384 // Change this value to control how many URLs to test
 
 	pool, err := db.Init()
 	if err != nil {
@@ -86,8 +86,10 @@ func TestPhishingAccuracy(t *testing.T) {
 	}
 
 	tp, fp, tn, fn := 0, 0, 0, 0
-	for _, tc := range testCases {
-		result := computeResultForUrl(tc.url, tc.host, phishingSet, domains)
+	results := computeResultsParallel(urls, extractHosts(urls), phishingSet, domains)
+
+	for i, tc := range testCases {
+		result := results[i] // Access the result from the slice
 
 		switch {
 		case tc.isPhishing && result.IsPhishing:
