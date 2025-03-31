@@ -1,6 +1,73 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-color: white;
+  --text-color: black;
+  --border-color: black;
+  --button-bg: lightgray;
+  --button-text: black;
+  --button-hover-bg: darkgray;
+  --button-hover-text: white;
+}
+
+body:has(#theme-toggle:checked) {
+  --bg-color: black;
+  --text-color: white;
+  --border-color: white;
+  --button-bg: gray;
+  --button-text: white;
+  --button-hover-bg: white;
+  --button-hover-text: black;
+}
+
 body {
   width: 300px;
   font-family: Arial, sans-serif;
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+#theme-toggle {
+  display: none;
+}
+
+label {
+  width: 50px;
+  height: 25px;
+  background-color: black;
+  border-radius: 25px;
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+/* Toggle Circle */
+label::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  transition: transform 0.3s, background-color 0.3s;
+}
+
+/* Dark Mode (Move toggle to the right) */
+#theme-toggle:checked + label {
+  background-color: lightgray;
+}
+
+#theme-toggle:checked + label::before {
+  background-color: black; /* White circle for dark mode */
+  transform: translateX(25px);
 }
 
 .form-group {
@@ -16,37 +83,50 @@ label {
 input[type="text"] {
   width: 100%;
   padding: 8px;
-  box-sizing: border-box;
+  margin-bottom: 10px;
+  font-size: 16px;
+  border-radius: 0.5em;
+  font-weight: 600;
 }
 
 button {
   width: 100%;
-  padding: 8px;
-  color: white;
-  border: none;
+  padding: 0.7em 1.7em;
+  font-size: 16px;
+  border-radius: 0.5em;
   cursor: pointer;
-  background-color: #4caf50;
-  border-radius: 5px;
-  font-size: 1rem;
+  border: none;
+  transition: all 0.3s;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  font-weight: 600;
+}
+
+button:hover {
+  background-color: var(--button-hover-bg);
+  color: var(--button-hover-text);
 }
 
 .status {
   margin-top: 15px;
   padding: 10px;
-  background-color: #f1f1f1;
-  border-radius: 4px;
-  font-size: 14px;
+  font-size: 16px;
+  border-radius: 0.5em;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
 }
 
 .popup-container {
-  background: white;
-  border: 2px solid #007bff;
-  border-radius: 8px;
   padding: 15px;
 }
 
 h2 {
   text-align: center;
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1rem;
 }
 
 .scan-results {
@@ -65,8 +145,9 @@ h2 {
   text-align: center;
   padding: 0.5rem;
   border-radius: 4px;
-  background: #f8f8f8;
   flex: 1;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
 }
 
 .stat-number {
@@ -78,6 +159,8 @@ h2 {
 .link-list {
   max-height: 200px;
   overflow-y: auto;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .link-item {
@@ -87,13 +170,12 @@ h2 {
   padding: 0.5rem;
   margin: 0.25rem 0;
   border-radius: 4px;
-  background: #fff;
   border: 1px solid #eee;
 }
 
 .link-item.phishing {
   border-color: #ffcccc;
-  background: #fff5f5;
+  background-color: var(--bg-color);
 }
 
 .link-status {

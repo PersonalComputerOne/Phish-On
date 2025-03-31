@@ -81,10 +81,7 @@ h1 {
 .suggestion-container {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Space between suggestions */
-}
-
-.suggestion {
+  gap: 10px;
   background-color: #f0f7ff;
   border-left: 4px solid #4285f4;
   padding: 10px;

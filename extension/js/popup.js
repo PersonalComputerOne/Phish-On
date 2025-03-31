@@ -138,6 +138,26 @@ function updateResultsDisplay(pageData, urlCache) {
   phishingLinksElem.textContent = phishingCount;
 }
 
+/* Light mode / Dark mode */
+
+const toggle = document.getElementById("theme-toggle");
+
+// Load the saved theme from localStorage
+if (localStorage.getItem("theme") === "dark") {
+  document.body.classList.add("dark-mode");
+  toggle.checked = true;
+}
+
+// Listen for toggle changes
+toggle.addEventListener("change", function () {
+  if (this.checked) {
+    document.body.classList.add("dark-mode");
+    localStorage.setItem("theme", "dark");
+  } else {
+    document.body.classList.remove("dark-mode");
+    localStorage.setItem("theme", "light");
+  }
+});
 function truncateUrl(url, maxLength) {
   if (url.length <= maxLength) return url;
 
