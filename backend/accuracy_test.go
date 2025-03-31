@@ -1,65 +1,122 @@
 package main
 
 import (
-	"log"
+	"encoding/csv"
+	"math/rand"
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/PersonalComputerOne/Phish-On/db"
 )
 
 func TestPhishingAccuracy(t *testing.T) {
+	const testLimit = 100 // Change this value to control how many URLs to test
+
 	pool, err := db.Init()
 	if err != nil {
 		t.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer pool.Close()
 
-	testData := []struct {
-		url        string
-		isPhishing bool
-	}{
-		{"http://github.com", false},
-		{"http://githun.com", true},
-		{"http://linkedin.com", false},
-		{"http://linkedin.org", true},
-		{"http://example.org", true},
+	file, err := os.Open("../datasets/new_data_urls.csv")
+	if err != nil {
+		t.Fatalf("Failed to open test data file: %v", err)
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	_, err = reader.Read()
+	if err != nil {
+		t.Fatalf("Failed to read CSV header: %v", err)
+	}
+	defer file.Close()
+
+	records, err := reader.ReadAll()
+	if err != nil {
+		t.Fatalf("Failed to read CSV records: %v", err)
 	}
 
-	tp, fp, tn, fn := 0, 0, 0, 0
+	if len(records) > testLimit {
+		rand.Shuffle(len(records), func(i, j int) {
+			records[i], records[j] = records[j], records[i]
+		})
+		records = records[:testLimit]
+	}
 
-	for _, data := range testData {
-		host, err := getHost(data.url)
+	t.Logf("Testing %d URLs from the dataset", len(records))
+
+	var urls []string
+	testCases := make([]struct {
+		url        string
+		isPhishing bool
+		host       string
+	}, 0, len(records))
+
+	for _, record := range records {
+		url := record[0]
+		status, err := strconv.Atoi(record[1])
 		if err != nil {
-			log.Printf("Error getting host: %v", err)
+			t.Fatalf("Failed to parse status value: %v", err)
+		}
+		isPhishing := status == 0
+
+		host, err := getHost(url)
+		if err != nil {
+			t.Logf("Skipping URL due to host error: %s | Error: %v", url, err)
 			continue
 		}
 
-		phishingSet, err := batchPhishingCheck(pool, []string{host})
-		if err != nil {
-			t.Fatalf("Phishing check failed: %v", err)
-		}
+		urls = append(urls, url)
+		testCases = append(testCases, struct {
+			url        string
+			isPhishing bool
+			host       string
+		}{url, isPhishing, host})
+	}
 
-		domains, err := fetchLegitimateDomains(pool)
-		if err != nil {
-			t.Fatalf("Failed to fetch legitimate domains: %v", err)
-		}
+	phishingSet, err := batchPhishingCheck(pool, urls)
+	if err != nil {
+		t.Fatalf("Phishing check failed: %v", err)
+	}
 
-		result := computeResultForUrl(data.url, host, phishingSet, domains)
+	domains, err := fetchLegitimateDomains(pool)
+	if err != nil {
+		t.Fatalf("Failed to fetch legitimate domains: %v", err)
+	}
 
-		if data.isPhishing && !result.IsReal {
+	tp, fp, tn, fn := 0, 0, 0, 0
+	for _, tc := range testCases {
+		result := computeResultForUrl(tc.url, tc.host, phishingSet, domains)
+
+		switch {
+		case tc.isPhishing && result.IsPhishing:
 			tp++
-		} else if !data.isPhishing && !result.IsReal {
+		case !tc.isPhishing && result.IsPhishing:
 			fp++
-		} else if !data.isPhishing && result.IsReal {
+		case !tc.isPhishing && !result.IsPhishing:
 			tn++
-		} else if data.isPhishing && result.IsReal {
+		case tc.isPhishing && !result.IsPhishing:
 			fn++
 		}
 	}
 
-	precision := float64(tp) / float64(tp+fp)
-	recall := float64(tp) / float64(tp+fn)
-	f1 := 2 * (precision * recall) / (precision + recall)
+	var precision, recall, f1 float64
+	if tp+fp > 0 {
+		precision = float64(tp) / float64(tp+fp)
+	} else {
+		precision = 0.0
+	}
+	if tp+fn > 0 {
+		recall = float64(tp) / float64(tp+fn)
+	} else {
+		recall = 0.0
+	}
+	if precision+recall > 0 {
+		f1 = 2 * (precision * recall) / (precision + recall)
+	} else {
+		f1 = 0.0
+	}
 
 	t.Logf("True Positives: %d", tp)
 	t.Logf("False Positives: %d", fp)

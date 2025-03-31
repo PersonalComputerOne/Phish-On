@@ -37,7 +37,11 @@
 }
 
 .modal-image {
+<<<<<<< HEAD
   margin-bottom: 850px;
+=======
+  margin-bottom: 1000px;
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
   width: 65%;
   max-height: 70%;
   transform: scale(1);
@@ -47,7 +51,11 @@
 button {
   border: none;
   cursor: pointer;
+<<<<<<< HEAD
   font-size: 20px;
+=======
+  font-size: 30px;
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
   font-weight: 600;
   color: #ccc;
 }
@@ -122,6 +130,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+<<<<<<< HEAD
   cursor: none;
   background: radial-gradient(
     circle,
@@ -158,6 +167,15 @@ body {
   100% {
     background-position: 50% 0%;
   }
+=======
+  background: linear-gradient(
+    90deg,
+    rgba(34, 60, 59, 1) 10%,
+    rgba(74, 140, 138, 1) 50%,
+    rgba(34, 60, 59, 1) 90%
+  );
+  cursor: none;
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
 }
 
 .dot {
@@ -294,6 +312,34 @@ body {
   }
 
   .logo {
+<<<<<<< HEAD
+=======
+    height: 45px;
+  }
+
+  .logo-text {
+    font-size: 25px;
+  }
+
+  .nav-links {
+    justify-content: end;
+    margin-top: 10px;
+  }
+
+  .nav-links .btn-about,
+  .nav-links .btn-get-started {
+    font-size: 16px;
+    padding: 15px 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 10px;
+  }
+
+  .logo {
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
     height: 40px;
   }
 
@@ -331,7 +377,11 @@ body {
 main {
   flex-grow: 1;
   color: #eeeeee;
+<<<<<<< HEAD
   margin: 80px 0;
+=======
+  margin: 110px 0;
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
 }
 
 h1 {
@@ -342,6 +392,33 @@ h1 {
   font-size: 30px;
   font-weight: 700;
   color: #eeeeee;
+<<<<<<< HEAD
+=======
+}
+
+.try-now {
+  color: #ffffff;
+  padding: 0.7em 1.7em;
+  font-size: 18px;
+  border-radius: 0.5em;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2),
+    -4px -4px 8px rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  margin: 20px 0;
+}
+
+.try-now:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.try-now:active {
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.3),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.1);
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
 }
 
 .mini-text {
@@ -352,6 +429,7 @@ h1 {
 }
 
 .about {
+<<<<<<< HEAD
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -404,10 +482,30 @@ iframe {
 
 hr {
   width: 100%;
+=======
+  color: #eeeeee;
+  margin: 100px;
+  padding: 50px;
+  backdrop-filter: blur(6px) saturate(60%);
+  -webkit-backdrop-filter: blur(6px) saturate(60%);
+  background-color: rgba(17, 25, 40, 0.5);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.125);
+  box-shadow: 0px 0px 4px 2px rgba(0, 0, 0, 0.5);
+}
+
+.img-glass {
+  /* background-image: url("../assets/image-phish.webp"); */
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  padding: 30px;
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
 }
 
 .about h1 {
   font-size: 30px;
+<<<<<<< HEAD
   text-align: center;
 }
 
@@ -417,12 +515,27 @@ hr {
   margin-top: 20px;
   text-align: center;
   max-width: 90%;
+=======
+}
+
+.text-container {
+  max-width: 80%;
+  margin: auto;
+  font-size: large;
+  font-weight: 500;
+  margin-top: 50px;
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
 }
 
 .text-container p {
   text-align: justify;
+<<<<<<< HEAD
   line-height: 2;
   margin: 15px 0px;
+=======
+  line-height: 2.4;
+  margin: 20px 0px;
+>>>>>>> 4e0e71fadb67408a746d0c8cf51a937241e3a8d0
 }
 
 .try-now {

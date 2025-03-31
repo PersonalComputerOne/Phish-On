@@ -14,21 +14,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// testPayload is the request structure expected by the API.
 type testPayload struct {
 	Urls []string `json:"urls"`
 }
 
-// testRouter initializes a Gin engine with your routes, similar to your main function.
-// It returns the router and the database pool so that tests can seed or clean up data.
 func testRouter() (*gin.Engine, *pgxpool.Pool, error) {
-	// Initialize DB (you can set an environment variable for test DB connection string)
 	pool, err := db.Init()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Create a new Gin engine (using Test Mode)
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -51,28 +46,32 @@ func testRouter() (*gin.Engine, *pgxpool.Pool, error) {
 }
 
 func TestLevenshteinParallel_Success(t *testing.T) {
+	const testLimit = 5 // Change this value to control how many URLs to test
+
 	router, _, err := testRouter()
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
 
-	// Build a valid payload.
+	urls, err := loadTestUrls(testLimit)
+	if err != nil {
+		t.Fatalf("Failed to load test URLs: %v", err)
+	}
+
 	payload := testPayload{
-		Urls: []string{"http://githun.com", "http://github.com", "https://giiiiithdub.com", "https://linkeddin.com", "https://twitter.com"},
+		Urls: urls,
 	}
 	reqBody, err := json.Marshal(payload)
 	if err != nil {
 		t.Fatalf("Failed to marshal payload: %v", err)
 	}
 
-	// Create a test request.
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/levenshtein/parallel", bytes.NewBuffer(reqBody))
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	// Create a recorder.
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -80,7 +79,6 @@ func TestLevenshteinParallel_Success(t *testing.T) {
 		t.Errorf("Expected status 200 OK, got %d", w.Code)
 	}
 
-	// Optionally, check response JSON.
 	var resp map[string]interface{}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Errorf("Failed to unmarshal response: %v", err)
@@ -94,8 +92,7 @@ func TestLevenshteinParallel_InvalidJSON(t *testing.T) {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
 
-	// Prepare an invalid JSON payload.
-	invalidJSON := []byte(`{"urls": ["http://example.com"]`) // missing closing bracket
+	invalidJSON := []byte(`{"urls": ["http://example.com"]`)
 
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/levenshtein/parallel", bytes.NewBuffer(invalidJSON))
 	if err != nil {
@@ -112,16 +109,21 @@ func TestLevenshteinParallel_InvalidJSON(t *testing.T) {
 }
 
 func TestLevenshteinParallel_DBFailure(t *testing.T) {
-	// Initialize the router and DB as usual.
+	const testLimit = 5 // Change this value to control how many URLs to test
+
 	router, pool, err := testRouter()
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
-	// Simulate DB failure by closing the pool.
 	pool.Close()
 
+	urls, err := loadTestUrls(testLimit)
+	if err != nil {
+		t.Fatalf("Failed to load test URLs: %v", err)
+	}
+
 	payload := testPayload{
-		Urls: []string{"http://phishy.com/malicious"},
+		Urls: urls,
 	}
 	reqBody, err := json.Marshal(payload)
 	if err != nil {
@@ -137,16 +139,12 @@ func TestLevenshteinParallel_DBFailure(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Expect an internal server error because the DB connection is closed.
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500 Internal Server Error due to DB failure, got %d", w.Code)
 	}
 }
 
-// Optionally, you can use TestMain to setup and teardown global test configuration.
 func TestMain(m *testing.M) {
-	// Example: set environment variables for test DB.
-	// os.Setenv("DATABASE_URL", "postgres://user:password@localhost:5432/testdb")
 	code := m.Run()
 	os.Exit(code)
 }

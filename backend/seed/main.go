@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/csv"
@@ -9,9 +10,13 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/PersonalComputerOne/Phish-On/db"
 )
@@ -52,24 +57,10 @@ func main() {
 			},
 		},
 		{
-			Name: "Domcop Top 10 Million Domains",
-			URL:  "https://www.domcop.com/files/top/top10milliondomains.csv.zip",
-			Processor: func(data []byte) ([]string, error) {
-				return processZipFile(data, ".csv", 1)
-			},
-		},
-		{
 			Name: "Tranco Top 1 Million",
-			URL:  "https://tranco-list.eu/download/24879/full",
+			URL:  "https://tranco-list.eu/top-1m.csv.zip",
 			Processor: func(data []byte) ([]string, error) {
-				return parseCSV(bytes.NewReader(data), 1)
-			},
-		},
-		{
-			Name: "Cloudflare Radar Top Domains",
-			URL:  "https://radar.cloudflare.com/charts/LargerTopDomainsTable/attachment?id=1257&top=1000000",
-			Processor: func(data []byte) ([]string, error) {
-				return parseCSV(bytes.NewReader(data), 0)
+				return processZipFile(data, "top-1m.csv", 1)
 			},
 		},
 		{
@@ -110,9 +101,9 @@ func main() {
 		batch := &pgx.Batch{}
 		for _, domain := range domains {
 			batch.Queue(
-				`INSERT INTO domain (url, source_id) 
-        VALUES ($1, $2) 
-        ON CONFLICT (url) DO NOTHING`, // Conflict on url column
+				`INSERT INTO domain (url, source_id)
+	      VALUES ($1, $2)
+	      ON CONFLICT (url) DO NOTHING`, // Conflict on url column
 				strings.ToLower(domain),
 				sourceID,
 			)
@@ -136,6 +127,9 @@ func main() {
 
 		log.Printf("Processed %s: %d new domains inserted", source.Name, totalInserted)
 	}
+
+	seedPhishtank(conn)
+	processPhishingData(conn, "../datasets/new_data_urls.csv")
 }
 
 func downloadDataset(url string) ([]byte, error) {
@@ -149,10 +143,6 @@ func downloadDataset(url string) ([]byte, error) {
 		"User-Agent",
 		"Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0",
 	)
-
-	if strings.Contains(url, "builtwith.com") {
-		req.Header.Set("Accept", "application/zip")
-	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -219,4 +209,176 @@ func parseCSV(r io.Reader, domainColumn int) ([]string, error) {
 	}
 
 	return domains, nil
+}
+
+func getSourceID(ctx context.Context, pool *pgxpool.Pool, name, urlStr string) (int, error) {
+	var id int
+	err := pool.QueryRow(ctx, "SELECT id FROM source WHERE name = $1", name).Scan(&id)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			err = pool.QueryRow(ctx,
+				"INSERT INTO source(name, url, added_at, last_crawled_at) VALUES($1, $2, $3, $4) RETURNING id",
+				name, urlStr, time.Now(), time.Now(),
+			).Scan(&id)
+			if err != nil {
+				return 0, fmt.Errorf("failed to insert source: %w", err)
+			}
+		} else {
+			return 0, fmt.Errorf("failed to query source: %w", err)
+		}
+	}
+	return id, nil
+}
+
+func seedPhishtank(pool *pgxpool.Pool) {
+	ctx := context.Background()
+
+	sourceName := "phishtank"
+	sourceURL := "https://www.phishtank.org"
+	sourceID, err := getSourceID(ctx, pool, sourceName, sourceURL)
+	if err != nil {
+		log.Fatalf("Error getting source ID: %v", err)
+	}
+
+	file, err := os.Open("seed/phishtank.txt")
+	if err != nil {
+		log.Fatalf("Failed to open file: %v", err)
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
+		os.Exit(1)
+	}
+
+	insertSQL := `
+		INSERT INTO domain(url, is_phishing, source_id, added_at)
+		VALUES($1, $2, $3, $4)
+		ON CONFLICT (url) DO NOTHING
+	`
+
+	total := len(lines)
+	if total == 0 {
+		fmt.Println("No lines to process.")
+		return
+	}
+
+	insertedCount := 0
+
+	for _, line := range lines {
+		_, err = pool.Exec(ctx, insertSQL, line, true, sourceID, time.Now())
+		if err != nil {
+			continue
+		}
+
+		insertedCount++
+		fmt.Printf("\rInserted %d/%d", insertedCount, total)
+	}
+
+	log.Println("Finished processing file.")
+}
+
+func processPhishingData(conn *pgxpool.Pool, path string) {
+	var sourceID int
+	err := conn.QueryRow(context.Background(),
+		`INSERT INTO source (name, url) VALUES ($1, $2)
+		ON CONFLICT (url) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id`,
+		"Phishing Dataset", path,
+	).Scan(&sourceID)
+	if err != nil {
+		log.Printf("Error inserting phishing source: %v", err)
+		return
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		log.Printf("Error opening phishing CSV: %v", err)
+		return
+	}
+	defer file.Close()
+
+	r := csv.NewReader(file)
+
+	// Skip header
+	if _, err := r.Read(); err != nil {
+		log.Printf("Error reading phishing header: %v", err)
+		return
+	}
+
+	batch := &pgx.Batch{}
+	var recordCount int
+
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Printf("Error reading phishing record: %v", err)
+			continue
+		}
+
+		if len(record) < 2 {
+			continue
+		}
+
+		status, err := strconv.Atoi(strings.TrimSpace(record[1]))
+		if err != nil {
+			continue // Skip invalid status entries
+		}
+
+		domain := strings.TrimSpace(record[0])
+		if domain == "" {
+			continue
+		}
+
+		var isPhishing bool
+		switch status {
+		case 0:
+			isPhishing = true
+		case 1:
+			isPhishing = false
+		default:
+			continue // Skip unknown status codes
+		}
+
+		batch.Queue(
+			`INSERT INTO domain (url, source_id, is_phishing) 
+			VALUES ($1, $2, $3) 
+			ON CONFLICT (url) DO UPDATE SET 
+				source_id = EXCLUDED.source_id,
+				is_phishing = EXCLUDED.is_phishing`,
+			strings.ToLower(domain),
+			sourceID,
+			isPhishing,
+		)
+		recordCount++
+	}
+
+	results := conn.SendBatch(context.Background(), batch)
+	defer results.Close()
+
+	var totalProcessed int
+	for i := 0; i < recordCount; i++ {
+		_, err := results.Exec()
+		if err == nil {
+			totalProcessed++
+		}
+	}
+
+	if err := results.Close(); err != nil {
+		log.Printf("Error finalizing phishing batch: %v", err)
+		return
+	}
+
+	log.Printf("Processed phishing data: %d records (0=phishing, 1=clean)", totalProcessed)
 }
