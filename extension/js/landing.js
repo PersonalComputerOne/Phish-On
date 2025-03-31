@@ -1,7 +1,7 @@
 const IMAGES = [
-  { id: 1, src: "/assets/malicious-webpage.png", alt: "Malicious Webpage" },
-  { id: 2, src: "/assets/phishing-webpage.png", alt: "Phishing Webpage" },
-  { id: 3, src: "/assets/extension.png", alt: "Browser Extension" },
+  { id: 1, src: "/assets/malicious.png", alt: "Malicious Webpage" },
+  { id: 2, src: "/assets/phishing.png", alt: "Phishing Webpage" },
+  { id: 3, src: "/assets/popup-screen.png", alt: "Browser Extension" },
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
