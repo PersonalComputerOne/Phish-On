@@ -30,6 +30,7 @@
   position: relative;
   z-index: 1;
   cursor: none;
+  border: 1px solid black;
 }
 
 .carousel-image:hover {
@@ -72,6 +73,7 @@ button:hover {
   filter: brightness(50%);
   transition: filter 0.3s ease-in-out;
   cursor: none;
+  border: 1px solid black;
 }
 
 .thumbnail-image:hover {
