@@ -66,7 +66,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   }
 });
 
-// Optimized link scanning with host-level deduplication
 chrome.webNavigation.onCompleted.addListener(async (details) => {
   if (details.frameId !== 0) return;
 
@@ -75,26 +74,12 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
     if (["chrome:", "chrome-extension:", "about:"].includes(url.protocol))
       return;
 
-    // Collect and normalize links
     const injectionResults = await chrome.scripting.executeScript({
       target: { tabId: details.tabId },
       func: () => {
-        const hrefs = Array.from(document.querySelectorAll("a"))
+        return Array.from(document.querySelectorAll("a"))
           .map((a) => a.href)
           .filter((href) => href && href.startsWith("http"));
-
-        return [...new Set(hrefs)]
-          .map((url) => {
-            try {
-              const u = new URL(url);
-              u.hash = "";
-              u.search = "";
-              return u.toString().replace(/\/$/, "");
-            } catch {
-              return null;
-            }
-          })
-          .filter((url) => url !== null);
       },
     });
 
@@ -107,6 +92,7 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
       timestamp: Date.now(),
     };
 
+    // Save page data first
     chrome.storage.local.get(["pageData"], (data) => {
       const pageDataMap = data.pageData || {};
       pageDataMap[details.url] = pageData;
@@ -122,52 +108,56 @@ chrome.webNavigation.onCompleted.addListener(async (details) => {
       chrome.storage.local.set({ pageData: pageDataMap });
     });
 
-    // Host-level processing
-    const hostProcessor = async () => {
-      const { urlCache } = await chrome.storage.local.get("urlCache");
-      const { apiEndpoint } = await chrome.storage.local.get("apiEndpoint");
-      const now = Date.now();
+    const { apiEndpoint, urlCache } = await chrome.storage.local.get([
+      "apiEndpoint",
+      "urlCache",
+    ]);
+    const endpoint = apiEndpoint || DEFAULT_API_ENDPOINT;
+    const now = Date.now();
+    let updatedCache = { ...urlCache };
 
-      // Extract unique hosts
-      const uniqueHosts = new Set();
-      links.forEach((link) => {
+    const processLinks = async () => {
+      for (const link of links) {
         try {
-          const url = new URL(link);
-          uniqueHosts.add(url.hostname);
-        } catch (error) {
-          console.error(`Invalid URL: ${link}`, error);
-        }
-      });
+          const linkUrl = new URL(link);
 
-      // Process each unique host
-      Array.from(uniqueHosts).forEach(async (host) => {
-        if (urlCache[host]?.timestamp + CACHE_EXPIRATION > now) return;
+          if (
+            updatedCache[linkUrl.hostname]?.timestamp + CACHE_EXPIRATION >
+            now
+          ) {
+            continue;
+          }
 
-        try {
-          const controller = new AbortController();
-          setTimeout(() => controller.abort(), 10000);
-
-          const response = await fetch(apiEndpoint, {
+          const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ urls: [`http://${host}`] }),
-            signal: controller.signal,
+            body: JSON.stringify({ urls: [link] }),
           });
 
-          if (!response.ok) return;
-          const data = await response.json();
-          const result = data.results[0];
+          if (!response.ok) continue;
 
-          result.timestamp = now;
-          urlCache[host] = result;
-          await chrome.storage.local.set({ urlCache });
+          const data = await response.json();
+          if (data.results && data.results[0]) {
+            const result = data.results[0];
+            result.timestamp = now;
+
+            updatedCache[linkUrl.hostname] = result;
+
+            if (Object.keys(updatedCache).length % 5 === 0) {
+              await chrome.storage.local.set({ urlCache: updatedCache });
+            }
+          }
         } catch (error) {
-          console.error(`Host processing error (${host}):`, error);
+          console.error(`Error checking link: ${link}`, error);
         }
-      });
+      }
+
+      await chrome.storage.local.set({ urlCache: updatedCache });
     };
 
-    await hostProcessor();
+    processLinks().catch((error) => {
+      console.error("Error in link processing:", error);
+    });
   } catch (error) {
     console.error("Link scanning error:", error);
   }
@@ -179,7 +169,7 @@ function redirectToBlockPage(tabId, result) {
       result.input_url
     )}&similarity_map=${encodeURIComponent(
       JSON.stringify(result.similarity_map)
-    )}`
+    )}&is_phishing=${encodeURIComponent(result.is_phishing)}`
   );
   chrome.tabs.update(tabId, { url: blockedUrl });
 }
