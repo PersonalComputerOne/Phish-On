@@ -179,7 +179,7 @@ function redirectToBlockPage(tabId, result) {
       result.input_url
     )}&similarity_map=${encodeURIComponent(
       JSON.stringify(result.similarity_map)
-    )}`
+    )}&is_phishing=${encodeURIComponent(result.is_phishing)}`
   );
   chrome.tabs.update(tabId, { url: blockedUrl });
 }
