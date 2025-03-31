@@ -1,6 +1,7 @@
 const urlParams = new URLSearchParams(window.location.search);
 const attemptedUrl = urlParams.get("input");
 const suggestedUrl = urlParams.get("similarity_map");
+const isPhishing = urlParams.get("is_phishing") === "true";
 
 document.getElementById("attempted-url").textContent =
   attemptedUrl || "Unknown URL";
@@ -9,7 +10,7 @@ const suggestionContainer = document.querySelector(".suggestion-container");
 
 suggestionContainer.innerHTML = "";
 
-if (suggestedUrl) {
+if (suggestedUrl && suggestedUrl !== "null") {
   try {
     const suggestions = JSON.parse(suggestedUrl);
 
@@ -17,7 +18,10 @@ if (suggestedUrl) {
       suggestionContainer.innerHTML = `<p style="color: #999; font-style: italic;">No suggestions available</p>`;
     } else {
       Object.keys(suggestions).forEach((key) => {
-        const fullUrl = key.startsWith("http") ? key : `https://${key}`;
+        const fullUrl =
+          key.startsWith("http://") || key.startsWith("https://")
+            ? key
+            : `https://${key}`;
 
         const suggestionDiv = document.createElement("div");
         suggestionDiv.classList.add("suggestion");
@@ -48,7 +52,7 @@ leaveButton.addEventListener("click", () => {
 
 const visitButton = document.getElementById("visit-btn");
 visitButton.addEventListener("click", () => {
-  window.open("_self");
+  window.location.href = attemptedUrl;
 });
 
 function showPhishingWarning(isPhishing) {
@@ -58,10 +62,10 @@ function showPhishingWarning(isPhishing) {
   if (isPhishing) {
     warningText.style.display = "block";
     defaultText.style.display = "none";
+    visitButton.style.display = "none";
   } else {
     warningText.style.display = "none";
   }
 }
 
-// const isPhishingDetected = true;
-// showPhishingWarning(isPhishingDetected);
+showPhishingWarning(isPhishing);

@@ -62,7 +62,7 @@ func levenshteinHandler(c *gin.Context, pool *pgxpool.Pool, parallel bool) {
 
 	hosts := extractHosts(jsonData.Urls)
 
-	phishingSet, err := batchPhishingCheck(pool, jsonData.Urls)
+	phishingSet, err := batchPhishingCheck(pool, append(jsonData.Urls, hosts...))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Phishing check failed"})
 		return
@@ -153,7 +153,7 @@ func computeResultsParallel(urls, hosts []string, phishingSet map[string]bool, d
 }
 
 func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, domains []string) LevenshteinResult {
-	if phishingSet[inputUrl] {
+	if phishingSet[inputUrl] || phishingSet[host] {
 		return LevenshteinResult{
 			InputUrl:   inputUrl,
 			IsPhishing: true,

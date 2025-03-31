@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statusText = document.getElementById("status");
   const urlInput = document.getElementById("url");
 
-  // Manual check handler
   checkBtn.addEventListener("click", async () => {
     let urlStr = urlInput.value.trim();
 
@@ -37,26 +36,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Load automatic scan results
+  await refreshCurrentTabData();
+
+  setupRealtimeUpdates();
+});
+
+async function getCurrentTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  const currentTab = tabs[0];
+  return tabs[0];
+}
+
+async function refreshCurrentTabData() {
+  const currentTab = await getCurrentTab();
   if (!currentTab?.url) return;
 
   const { pageData, urlCache } = await chrome.storage.local.get([
     "pageData",
     "urlCache",
   ]);
-  updateResultsDisplay(pageData?.[currentTab.url], urlCache);
 
-  // Real-time updates
-  chrome.storage.local.onChanged.addListener((changes) => {
+  updateResultsDisplay(pageData?.[currentTab.url], urlCache);
+}
+
+function setupRealtimeUpdates() {
+  chrome.storage.local.onChanged.addListener(async (changes) => {
     if (changes.pageData || changes.urlCache) {
-      chrome.storage.local.get(["pageData", "urlCache"], (data) => {
-        updateResultsDisplay(data.pageData?.[currentTab.url], data.urlCache);
-      });
+      await refreshCurrentTabData();
     }
   });
-});
+
+  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+    const currentTab = await getCurrentTab();
+    if (tabId === currentTab?.id && changeInfo.status === "complete") {
+      await refreshCurrentTabData();
+    }
+  });
+
+  chrome.tabs.onActivated.addListener(async () => {
+    await refreshCurrentTabData();
+  });
+
+  const refreshInterval = setInterval(async () => {
+    await refreshCurrentTabData();
+  }, 2000);
+
+  window.addEventListener("unload", () => {
+    clearInterval(refreshInterval);
+  });
+}
 
 function updateResultsDisplay(pageData, urlCache) {
   const linkList = document.getElementById("linkList");
@@ -75,22 +102,58 @@ function updateResultsDisplay(pageData, urlCache) {
   linkList.innerHTML = "";
 
   pageData.links.forEach((link) => {
-    const li = document.createElement("div");
-    const hostname = new URL(link).hostname;
-    const result = urlCache?.[hostname];
+    try {
+      const url = new URL(link);
+      const hostname = url.hostname;
+      const result = urlCache?.[hostname];
 
-    li.className = `link-item ${result?.is_real ? "" : "phishing"}`;
-    li.innerHTML = `
-      <span class="link-url">${hostname}</span>
-      <span class="link-status ${result?.is_real ? "legit" : "phishing"}">
-        ${result ? (result.is_real ? "Legit" : "Phishing") : "Checking..."}
-      </span>
-    `;
+      const li = document.createElement("div");
+      li.className = `link-item ${result?.is_real === false ? "phishing" : ""}`;
 
-    if (result && !result.is_real) phishingCount++;
-    linkList.appendChild(li);
+      let statusText = "Checking...";
+      let statusClass = "checking";
+
+      if (result) {
+        statusText = result.is_real ? "Legit" : "Phishing";
+        statusClass = result.is_real ? "legit" : "phishing";
+        if (!result.is_real) phishingCount++;
+      }
+
+      const displayUrl = truncateUrl(url.toString(), 50);
+
+      li.innerHTML = `
+        <span class="link-url" title="${url}">${displayUrl}</span>
+        <span class="link-status ${statusClass}">
+          ${statusText}
+        </span>
+      `;
+
+      linkList.appendChild(li);
+    } catch (error) {
+      console.error(`Invalid URL in links: ${link}`, error);
+    }
   });
 
   totalLinksElem.textContent = pageData.links.length;
   phishingLinksElem.textContent = phishingCount;
+}
+
+function truncateUrl(url, maxLength) {
+  if (url.length <= maxLength) return url;
+
+  const urlObj = new URL(url);
+  let shortened = urlObj.origin + "/";
+
+  if (urlObj.pathname.length > 1) {
+    const pathParts = urlObj.pathname.split("/").filter(Boolean);
+    if (pathParts.length > 0) {
+      shortened += pathParts[0] + "/...";
+    }
+  }
+
+  if (shortened.length > maxLength) {
+    return shortened.substring(0, maxLength - 3) + "...";
+  }
+
+  return shortened;
 }
