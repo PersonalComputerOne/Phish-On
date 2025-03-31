@@ -160,6 +160,7 @@ h3 {
   max-height: 200px;
   overflow-y: auto;
   font-weight: 600;
+  color: var(--text-color);
 }
 
 .link-item {
@@ -174,7 +175,7 @@ h3 {
 
 .link-item.phishing {
   border-color: #ffcccc;
-  background: #fff5f5;
+  background-color: var(--bg-color);
 }
 
 .link-status {
