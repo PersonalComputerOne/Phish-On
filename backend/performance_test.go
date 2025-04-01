@@ -44,7 +44,7 @@ func loadTestUrls(limit int) ([]string, error) {
 	return urls, nil
 }
 
-func benchmarkPerformance(urls []string) { // Removed iterations parameter
+func benchmarkPerformance(urls []string) {
 	pool, err := db.Init()
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
@@ -57,12 +57,12 @@ func benchmarkPerformance(urls []string) { // Removed iterations parameter
 	}
 	// Sequential performance
 	startSeq := time.Now()
-	computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains) // Removed loop
+	computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains)
 	seqDuration := time.Since(startSeq)
 
 	// Parallel performance
 	startPar := time.Now()
-	computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains) // Removed loop
+	computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains)
 	parDuration := time.Since(startPar)
 
 	// Calculate metrics
@@ -70,8 +70,8 @@ func benchmarkPerformance(urls []string) { // Removed iterations parameter
 	avgParTime := parDuration.Seconds()
 	speedup := avgSeqTime / avgParTime
 
-	log.Printf("Sequential Time: %.4f seconds", avgSeqTime) // Changed to Time
-	log.Printf("Parallel Time: %.4f seconds", avgParTime)   // Changed to Time
+	log.Printf("Sequential Time: %.4f seconds", avgSeqTime)
+	log.Printf("Parallel Time: %.4f seconds", avgParTime)
 	log.Printf("Speedup: %.2fx", speedup)
 }
 
@@ -84,5 +84,5 @@ func TestPerformance(t *testing.T) {
 	}
 
 	t.Logf("Testing performance with %d URLs", len(urls))
-	benchmarkPerformance(urls) // Removed iterations parameter
+	benchmarkPerformance(urls)
 }
