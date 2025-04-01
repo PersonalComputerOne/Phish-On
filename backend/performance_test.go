@@ -44,7 +44,7 @@ func loadTestUrls(limit int) ([]string, error) {
 	return urls, nil
 }
 
-func benchmarkPerformance(urls []string, iterations int) {
+func benchmarkPerformance(urls []string) { // Removed iterations parameter
 	pool, err := db.Init()
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
@@ -57,31 +57,26 @@ func benchmarkPerformance(urls []string, iterations int) {
 	}
 	// Sequential performance
 	startSeq := time.Now()
-	for i := 0; i < iterations; i++ {
-		computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains)
-	}
+	computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains) // Removed loop
 	seqDuration := time.Since(startSeq)
 
 	// Parallel performance
 	startPar := time.Now()
-	for i := 0; i < iterations; i++ {
-		computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains)
-	}
+	computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains) // Removed loop
 	parDuration := time.Since(startPar)
 
 	// Calculate metrics
-	avgSeqTime := seqDuration.Seconds() / float64(iterations)
-	avgParTime := parDuration.Seconds() / float64(iterations)
+	avgSeqTime := seqDuration.Seconds()
+	avgParTime := parDuration.Seconds()
 	speedup := avgSeqTime / avgParTime
 
-	log.Printf("Sequential Avg Time: %.4f seconds", avgSeqTime)
-	log.Printf("Parallel Avg Time: %.4f seconds", avgParTime)
+	log.Printf("Sequential Time: %.4f seconds", avgSeqTime) // Changed to Time
+	log.Printf("Parallel Time: %.4f seconds", avgParTime)   // Changed to Time
 	log.Printf("Speedup: %.2fx", speedup)
 }
 
 func TestPerformance(t *testing.T) {
 	const testLimit = 15 // Change this value to control how many URLs to test
-	const iterations = 5 // Number of times to run the benchmark
 
 	urls, err := loadTestUrls(testLimit)
 	if err != nil {
@@ -89,5 +84,5 @@ func TestPerformance(t *testing.T) {
 	}
 
 	t.Logf("Testing performance with %d URLs", len(urls))
-	benchmarkPerformance(urls, iterations)
+	benchmarkPerformance(urls) // Removed iterations parameter
 }
