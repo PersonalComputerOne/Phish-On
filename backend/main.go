@@ -144,7 +144,6 @@ func computeResultsParallel(urls, hosts []string, phishingSet map[string]bool, d
 			}()
 
 			results[idx] = computeResultForUrl(url, host, phishingSet, domains)
-
 		}(i, urls[i], hosts[i])
 	}
 
@@ -172,8 +171,19 @@ func computeResultForUrl(inputUrl, host string, phishingSet map[string]bool, dom
 	var exactMatch string
 	similarityMap := make(map[string]float64)
 	threshold := 0.85
+	hostLen := len(host)
+	maxAllowedDiff := 0.15 // Corresponds to 1 - threshold
 
 	for _, d := range domains {
+		domainLen := len(d)
+		maxLen := math.Max(float64(hostLen), float64(domainLen))
+		lengthDiff := math.Abs(float64(hostLen - domainLen))
+
+		// Skip domains that cannot meet the similarity threshold based on length difference
+		if lengthDiff > maxAllowedDiff*maxLen {
+			continue
+		}
+
 		distance := algorithms.ComputeDistance(host, d)
 		similarity := similarityIndex(host, d)
 
