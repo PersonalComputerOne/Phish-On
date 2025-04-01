@@ -5,7 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"runtime"
 	"testing"
 	"time"
 
@@ -45,7 +44,7 @@ func loadTestUrls(limit int) ([]string, error) {
 	return urls, nil
 }
 
-func benchmarkPerformance(urls []string, iterations int) {
+func benchmarkPerformance(urls []string) {
 	pool, err := db.Init()
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
@@ -58,33 +57,26 @@ func benchmarkPerformance(urls []string, iterations int) {
 	}
 	// Sequential performance
 	startSeq := time.Now()
-	for i := 0; i < iterations; i++ {
-		computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains)
-	}
+	computeResultsSequential(urls, extractHosts(urls), map[string]bool{}, domains)
 	seqDuration := time.Since(startSeq)
 
 	// Parallel performance
 	startPar := time.Now()
-	for i := 0; i < iterations; i++ {
-		computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains)
-	}
+	computeResultsParallel(urls, extractHosts(urls), map[string]bool{}, domains)
 	parDuration := time.Since(startPar)
 
 	// Calculate metrics
-	avgSeqTime := seqDuration.Seconds() / float64(iterations)
-	avgParTime := parDuration.Seconds() / float64(iterations)
+	avgSeqTime := seqDuration.Seconds()
+	avgParTime := parDuration.Seconds()
 	speedup := avgSeqTime / avgParTime
-	efficiency := speedup / float64(runtime.NumCPU())
 
-	log.Printf("Sequential Avg Time: %.4f seconds", avgSeqTime)
-	log.Printf("Parallel Avg Time: %.4f seconds", avgParTime)
+	log.Printf("Sequential Time: %.4f seconds", avgSeqTime)
+	log.Printf("Parallel Time: %.4f seconds", avgParTime)
 	log.Printf("Speedup: %.2fx", speedup)
-	log.Printf("Efficiency: %.2f", efficiency)
 }
 
 func TestPerformance(t *testing.T) {
-	const testLimit = 5  // Change this value to control how many URLs to test
-	const iterations = 5 // Number of times to run the benchmark
+	const testLimit = 15 // Change this value to control how many URLs to test
 
 	urls, err := loadTestUrls(testLimit)
 	if err != nil {
@@ -92,5 +84,5 @@ func TestPerformance(t *testing.T) {
 	}
 
 	t.Logf("Testing performance with %d URLs", len(urls))
-	benchmarkPerformance(urls, iterations)
+	benchmarkPerformance(urls)
 }
