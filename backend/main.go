@@ -266,5 +266,8 @@ func getHost(inputURL string) (string, error) {
 		return "", err
 	}
 	host := strings.ToLower(u.Hostname())
+
+	host = strings.TrimPrefix(host, "www.")
+
 	return strings.TrimSuffix(host, "."), nil
 }

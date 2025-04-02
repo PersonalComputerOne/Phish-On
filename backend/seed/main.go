@@ -104,7 +104,7 @@ func main() {
 				`INSERT INTO domain (url, source_id)
 	      VALUES ($1, $2)
 	      ON CONFLICT (url) DO NOTHING`, // Conflict on url column
-				strings.ToLower(domain),
+				strings.ToLower(strings.TrimRight(domain, "/")),
 				sourceID,
 			)
 		}
@@ -337,6 +337,7 @@ func processPhishingData(conn *pgxpool.Pool, path string) {
 		}
 
 		domain := strings.TrimSpace(record[0])
+		domain = strings.TrimRight(domain, "/")
 		if domain == "" {
 			continue
 		}
@@ -354,9 +355,7 @@ func processPhishingData(conn *pgxpool.Pool, path string) {
 		batch.Queue(
 			`INSERT INTO domain (url, source_id, is_phishing) 
 			VALUES ($1, $2, $3) 
-			ON CONFLICT (url) DO UPDATE SET 
-				source_id = EXCLUDED.source_id,
-				is_phishing = EXCLUDED.is_phishing`,
+			ON CONFLICT (url) DO NOTHING`,
 			strings.ToLower(domain),
 			sourceID,
 			isPhishing,
