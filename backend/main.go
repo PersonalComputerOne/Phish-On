@@ -14,6 +14,7 @@ import (
 	"github.com/PersonalComputerOne/Phish-On/db"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/net/publicsuffix"
 )
 
 type LevenshteinResult struct {
@@ -267,12 +268,9 @@ func getHost(inputURL string) (string, error) {
 	}
 	host := strings.ToLower(u.Hostname())
 
-	host = strings.TrimPrefix(host, "www.")
-
-	parts := strings.Split(host, ".")
-	if len(parts) > 2 {
-		host = strings.Join(parts[len(parts)-2:], ".")
+	domain, err := publicsuffix.EffectiveTLDPlusOne(host)
+	if err != nil {
+		return host, err
 	}
-
-	return strings.TrimSuffix(host, "."), nil
+	return domain, nil
 }

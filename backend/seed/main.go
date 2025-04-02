@@ -337,7 +337,6 @@ func processPhishingData(conn *pgxpool.Pool, path string) {
 		}
 
 		domain := strings.TrimSpace(record[0])
-		domain = strings.TrimRight(domain, "/")
 		if domain == "" {
 			continue
 		}
