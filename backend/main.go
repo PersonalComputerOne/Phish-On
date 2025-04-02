@@ -269,5 +269,10 @@ func getHost(inputURL string) (string, error) {
 
 	host = strings.TrimPrefix(host, "www.")
 
+	parts := strings.Split(host, ".")
+	if len(parts) > 2 {
+		host = strings.Join(parts[len(parts)-2:], ".")
+	}
+
 	return strings.TrimSuffix(host, "."), nil
 }
